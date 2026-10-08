@@ -1,0 +1,2818 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Скаут-индексы · v2 эксперимент</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d1d;
+    --bg2: #141936;
+    --bg3: #1d2448;
+    --surface: #10142c;
+    --track: #090c1d;
+    --border: #262d55;
+    --border2: rgba(139, 92, 246, .45);
+    --text: #eef1fd;
+    --muted: #8e96bd;
+    --accent: #8b5cf6;
+    --accent2: #22d3ee;
+    --grad: linear-gradient(135deg, #8b5cf6 0%, #5b7cfa 45%, #22d3ee 100%);
+    --grad-soft: linear-gradient(135deg, rgba(139,92,246,.16), rgba(34,211,238,.10));
+    --shadow: 0 12px 34px rgba(3, 6, 20, .45);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scrollbar-color: #2b3466 var(--bg); }
+  ::selection { background: rgba(139,92,246,.45); }
+  /* современный путь: тонкие полосы, прозрачная дорожка — только парящий ползунок */
+  * { scrollbar-width: thin; scrollbar-color: #4b3f95 transparent; }
+  .table-wrap:hover, .wiz:hover, .cbox-list:hover, main:hover { scrollbar-color: #7d5ff2 transparent; }
+  /* запасной путь для старых Chromium */
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    border: 3px solid transparent;
+    background: linear-gradient(135deg, #4a3d92, #2a4a78) padding-box;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #8b5cf6, #22d3ee) padding-box;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-corner { background: transparent; }
+  body {
+    background:
+      radial-gradient(1100px 520px at 88% -12%, rgba(34, 211, 238, .10), transparent 60%),
+      radial-gradient(950px 640px at -12% -4%, rgba(139, 92, 246, .16), transparent 55%),
+      radial-gradient(800px 800px at 50% 120%, rgba(91, 124, 250, .07), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    letter-spacing: .01em;
+  }
+
+  /* ---------- шапка ---------- */
+  header {
+    display: flex; align-items: center; gap: 18px;
+    padding: 12px 22px;
+    background: rgba(10, 13, 29, .82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(139, 92, 246, .18);
+    position: sticky; top: 0; z-index: 50;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; font-weight: 800; white-space: nowrap; letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+  .logo-text {
+    background: var(--grad);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .logo-ball { filter: drop-shadow(0 0 8px rgba(139, 92, 246, .6)); }
+  .logo-tag { color: var(--accent2); font-size: 10.5px; font-weight: 700; align-self: flex-start; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab-btn {
+    background: none; border: 1px solid transparent; color: var(--muted);
+    padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 13.5px;
+    font-family: inherit; font-weight: 600; letter-spacing: .01em;
+    transition: color .15s, background .15s, box-shadow .2s, transform .12s;
+  }
+  .tab-btn:hover { color: var(--text); background: rgba(139, 92, 246, .10); }
+  .tab-btn.active {
+    background: var(--grad); color: #0a0d20; font-weight: 800;
+    box-shadow: 0 4px 18px rgba(99, 102, 241, .45);
+  }
+  .header-info { margin-left: auto; color: var(--muted); font-size: 12px; }
+  main { padding: 22px 22px 70px; max-width: 1560px; margin: 0 auto; }
+  .tab-page { display: none; }
+  .tab-page.active { display: block; animation: fadein .18s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- зоны загрузки, поля, кнопки ---------- */
+  .dropzone {
+    border: 2px dashed rgba(139, 92, 246, .35); border-radius: 18px;
+    padding: 60px 30px; text-align: center; color: var(--muted);
+    cursor: pointer; transition: all .2s; margin-bottom: 20px;
+    background: rgba(139, 92, 246, .04);
+  }
+  .dropzone.small { padding: 22px 20px; margin-bottom: 12px; }
+  .dropzone:hover, .dropzone.drag {
+    border-color: var(--accent2); color: var(--text);
+    background: var(--grad-soft);
+    box-shadow: 0 0 0 4px rgba(34, 211, 238, .08), var(--shadow);
+  }
+  .dropzone b { color: var(--accent2); }
+  .settings-box {
+    background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0)), var(--bg2);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 18px; margin-bottom: 14px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+    box-shadow: var(--shadow);
+  }
+  .settings-box label { color: var(--muted); }
+  input[type=number], input[type=text], select {
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+    border-radius: 9px; padding: 7px 11px; font-size: 14px; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='12'%20height='8'%20viewBox='0%200%2012%208'%3E%3Cpath%20d='M1%201.5%20L6%206.5%20L11%201.5'%20fill='none'%20stroke='%2322d3ee'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 11px center; background-size: 11px;
+    padding-right: 32px;
+  }
+  select:hover { border-color: var(--border2); }
+  select option, select optgroup { background: #1a2040; color: var(--text); }
+  /* современный Chromium: попап селекта отдаётся под CSS — скругления, тень, свои пункты */
+  @supports selector(::picker(select)) {
+    select, ::picker(select) { appearance: base-select; }
+    select::picker-icon { display: none; } /* встроенную стрелку прячем — у нас своя шевронка */
+    ::picker(select) {
+      background: #1a2040; color: var(--text);
+      border: 1px solid var(--border2); border-radius: 12px;
+      box-shadow: 0 16px 44px rgba(3, 6, 20, .8);
+      padding: 6px;
+    }
+    select option {
+      background: transparent; padding: 6px 10px; border-radius: 8px;
+      font-size: 13.5px; font-family: inherit;
+    }
+    select option:hover, select option:focus { background: rgba(139, 92, 246, .18); }
+    select option:checked { background: rgba(34, 211, 238, .14); color: var(--accent2); }
+    select optgroup { color: var(--muted); font-size: 11px; }
+  }
+  input:focus-visible, select:focus-visible {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, .25);
+  }
+  input[type=number] { width: 85px; font-variant-numeric: tabular-nums; }
+  button.act {
+    background: var(--grad); border: none; color: #0a0d20; font-weight: 800;
+    padding: 9px 18px; border-radius: 10px; cursor: pointer; font-size: 14px; font-family: inherit;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, .35);
+    transition: transform .12s, box-shadow .2s, filter .15s;
+  }
+  button.act:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 8px 22px rgba(99, 102, 241, .45); }
+  button.act:active { transform: translateY(0); }
+  button.act.sec {
+    background: var(--bg3); color: var(--text); border: 1px solid var(--border);
+    font-weight: 600; box-shadow: none;
+  }
+  button.act.sec:hover { border-color: var(--border2); background: #232a55; }
+  button.act.danger { background: none; color: #fb7185; border: 1px solid rgba(251, 113, 133, .35); font-weight: 600; box-shadow: none; }
+  button.act.danger:hover { background: rgba(251, 113, 133, .10); }
+
+  /* ---------- таблицы ---------- */
+  .filters { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .filters input[type=text] { min-width: 230px; }
+  .table-wrap {
+    overflow: auto; max-height: calc(100vh - 230px);
+    border: 1px solid var(--border); border-radius: 14px;
+    background: var(--surface); box-shadow: var(--shadow);
+  }
+  table.players { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  table.players th, table.players td { padding: 8px 11px; text-align: left; white-space: nowrap; }
+  table.players th {
+    background: #171c3d; color: var(--muted); font-weight: 700; font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: .04em;
+    cursor: pointer; user-select: none; position: sticky; top: 0; z-index: 2;
+    border-bottom: 1px solid var(--border);
+  }
+  table.players th:hover { color: var(--accent2); }
+  table.players tbody tr { border-top: 1px solid rgba(38, 45, 85, .55); cursor: pointer; transition: background .1s; }
+  table.players tbody tr:hover { background: rgba(139, 92, 246, .08); }
+  /* изменение ширины колонок перетаскиванием (как в Excel) */
+  table.players.fixed { table-layout: fixed; }
+  table.players.fixed th, table.players.fixed td { overflow: hidden; text-overflow: ellipsis; }
+  .col-grip {
+    position: absolute; top: 0; right: -4px; width: 9px; height: 100%;
+    cursor: col-resize; user-select: none; z-index: 5;
+  }
+  .col-grip:hover, .col-grip.active { background: rgba(34, 211, 238, .5); }
+  /* первая колонка (игрок) прилипает слева при горизонтальной прокрутке */
+  table.players th:first-child, table.players td:first-child { position: sticky; left: 0; }
+  table.players th:first-child { z-index: 3; }
+  table.players td:first-child { background: var(--surface); }
+  table.players tbody tr:hover td:first-child { background: #1b2046; }
+  td.lg-cell { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+  /* флаги национальностей */
+  .flag { border-radius: 3px; vertical-align: -1px; margin-left: 6px; box-shadow: 0 0 0 1px rgba(255,255,255,.14); height: auto; flex: none; }
+  .pcell { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; }
+  .idx-cell { font-weight: 800; text-align: center !important; }
+  .muted { color: var(--muted); }
+  .reco-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; border-radius: 999px;
+    padding: 2.5px 9px; margin-right: 4px; white-space: nowrap; letter-spacing: .01em;
+  }
+  .reco-star  { background: rgba(251, 191, 36, .13); color: #fbd34d; border: 1px solid rgba(251, 191, 36, .4); }
+  .reco-ready { background: rgba(52, 211, 153, .12); color: #4ade9d; border: 1px solid rgba(52, 211, 153, .38); }
+  .reco-prosp { background: rgba(56, 189, 248, .12); color: #67cdf8; border: 1px solid rgba(56, 189, 248, .38); }
+
+  /* ---------- карточка игрока ---------- */
+  .card-head {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(600px 220px at 12% -40%, rgba(139, 92, 246, .28), transparent 60%),
+      radial-gradient(520px 260px at 95% 140%, rgba(34, 211, 238, .16), transparent 60%),
+      var(--bg2);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 24px 28px; margin-bottom: 18px;
+    display: flex; gap: 32px; align-items: center; flex-wrap: wrap;
+    box-shadow: var(--shadow);
+  }
+  .card-head::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+    background: var(--grad); opacity: .9;
+  }
+  .card-head h2 { font-size: 30px; font-weight: 800; display: flex; align-items: center; gap: 12px; letter-spacing: .01em; }
+  .card-head .sub { color: var(--muted); margin-top: 5px; }
+  .star-btn { background: none; border: none; font-size: 26px; cursor: pointer; color: var(--muted); transition: transform .15s, color .15s; }
+  .star-btn:hover { transform: scale(1.2); color: #fbd34d; }
+  .star-btn.on { color: #fbd34d; text-shadow: 0 0 14px rgba(251, 191, 36, .6); }
+  .bio { display: flex; gap: 24px; margin-left: auto; flex-wrap: wrap; }
+  .bio div { text-align: center; }
+  .bio .v { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .bio .l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .head-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-left: 26px; }
+  .head-cats .hc {
+    text-align: center; background: rgba(9, 12, 29, .55); border: 1px solid var(--border);
+    border-radius: 12px; padding: 7px 12px; min-width: 74px;
+    transition: border-color .15s, transform .12s;
+  }
+  .head-cats .hc:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .head-cats .v { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .head-cats .l { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; max-width: 90px; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 1000px) { .card-grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0) 40%), var(--bg2);
+    border: 1px solid var(--border); border-radius: 16px; padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .panel h3 { font-size: 15px; margin-bottom: 12px; color: var(--accent2); font-weight: 800; letter-spacing: .02em; }
+  .role-row {
+    display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 10px; cursor: pointer;
+    transition: background .12s;
+  }
+  .role-row:hover { background: rgba(139, 92, 246, .10); }
+  .role-row.sel { background: rgba(139, 92, 246, .16); box-shadow: inset 0 0 0 1px var(--border2); }
+  .role-row .rname { flex: 0 0 210px; }
+  .role-row .rsub { display: block; font-size: 11px; color: var(--muted); }
+  .role-bar-wrap { flex: 1; height: 15px; background: var(--track); border-radius: 8px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.5); }
+  .role-bar { position: relative; height: 100%; border-radius: 8px; transition: width .3s ease; }
+  .role-bar::after { content: ""; position: absolute; inset: 0; border-radius: 8px;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 40%, rgba(255,255,255,.28)); }
+  .role-val { flex: 0 0 40px; text-align: right; font-weight: 800; font-size: 16px; font-variant-numeric: tabular-nums; }
+
+  .metric-cat { margin-bottom: 16px; border: 1px dashed transparent; border-radius: 12px; transition: background .15s, border-color .15s; }
+  .metric-cat.dragover { border-color: var(--accent2); background: rgba(34, 211, 238, .06); }
+  .metric-cat h4 {
+    color: var(--text); font-size: 13px; font-weight: 800; text-transform: uppercase;
+    margin-bottom: 7px; letter-spacing: .08em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .metric-cat h4::before { content: ""; width: 3px; height: 14px; border-radius: 2px; background: var(--grad); }
+  .cat-avg { font-weight: 800; font-size: 13.5px; text-transform: none; letter-spacing: 0; margin-left: 4px; font-variant-numeric: tabular-nums; }
+  .m-row[data-m] { cursor: grab; }
+  .m-row[data-m]:hover { background: rgba(139, 92, 246, .07); border-radius: 6px; }
+  .m-row.dragging { opacity: .35; }
+  .drag-ghost {
+    position: fixed; z-index: 1000; pointer-events: none; opacity: .96;
+    background: var(--bg3); border: 1px solid var(--accent2); border-radius: 9px;
+    padding: 5px 12px; box-shadow: 0 12px 34px rgba(3, 6, 20, .7), 0 0 0 3px rgba(34, 211, 238, .15);
+  }
+  .m-row { display: flex; align-items: center; gap: 8px; padding: 3px 4px; font-size: 13px; }
+  .m-row .mn { flex: 0 0 300px; color: #c6cdea; }
+  .m-row .mv { flex: 0 0 55px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .m-bar-wrap { flex: 1; height: 9px; background: var(--track); border-radius: 5px; overflow: hidden; }
+  .m-bar { position: relative; height: 100%; border-radius: 5px; }
+  .m-bar::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0) 40%, rgba(255,255,255,.22)); }
+  .m-row .mp { flex: 0 0 30px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .empty-note { color: var(--muted); padding: 46px; text-align: center; }
+  .sim-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; cursor: pointer; transition: background .12s; }
+  .sim-row:hover { background: rgba(139, 92, 246, .10); }
+  .sim-row .sv { margin-left: auto; font-weight: 800; color: var(--accent2); font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 18px; justify-content: center; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; }
+
+  /* ---------- лиги, чипы, конфиг ---------- */
+  .league-row {
+    display: flex; gap: 10px; align-items: center;
+    background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0)), var(--bg2);
+    border: 1px solid var(--border); border-radius: 12px; padding: 11px 15px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .league-row input.lname { width: 220px; }
+  .league-row .lmeta { color: var(--muted); font-size: 12px; }
+  .col-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .col-chip {
+    display: inline-flex; align-items: center; gap: 7px; cursor: grab; user-select: none;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 999px;
+    padding: 5px 12px; font-size: 13px; transition: border-color .15s, box-shadow .15s;
+  }
+  .col-chip:hover { border-color: var(--border2); box-shadow: 0 2px 10px rgba(99, 102, 241, .25); }
+  .col-chip.dragging { opacity: .35; }
+  .col-chip input { cursor: pointer; accent-color: #8b5cf6; }
+  input[type=checkbox], input[type=radio] { accent-color: #8b5cf6; }
+
+  .cfg-section { margin-bottom: 28px; }
+  .cfg-section > h3 { margin-bottom: 10px; color: var(--accent2); font-weight: 800; }
+  .role-card {
+    background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)), var(--bg2);
+    border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px;
+    transition: border-color .15s;
+  }
+  .role-card:hover { border-color: #333c6e; }
+  .role-card[open] { border-color: var(--border2); }
+  .role-card summary {
+    padding: 11px 15px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 10px;
+    list-style: none;
+  }
+  .role-card summary::before { content: "▸"; color: var(--accent); transition: transform .15s; }
+  .role-card[open] summary::before { content: "▾"; }
+  .role-card .body { padding: 4px 15px 15px; }
+  .w-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .w-row select { flex: 1; max-width: 480px; }
+  .w-row input[type=number] { width: 80px; }
+  .w-row .del { background: none; border: none; color: #fb7185; cursor: pointer; font-size: 16px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 6px 0; line-height: 1.5; }
+
+  /* ---------- мастер импорта ---------- */
+  .wiz-overlay {
+    position: fixed; inset: 0; background: rgba(4, 6, 16, .7); z-index: 200;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .wiz {
+    position: relative; overflow-y: auto; overflow-x: hidden;
+    background: var(--bg2); border: 1px solid var(--border2); border-radius: 20px;
+    width: min(880px, 96vw); max-height: 92vh; padding: 0;
+    box-shadow: 0 30px 90px rgba(3, 6, 20, .8);
+  }
+  .wiz-head {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 28px;
+    background: rgba(20, 25, 54, .92);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .wiz-head h2 { margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wiz-close {
+    flex: none; width: 34px; height: 34px; border-radius: 10px; cursor: pointer;
+    background: var(--bg3); border: 1px solid var(--border); color: var(--muted);
+    font-size: 16px; line-height: 1; font-family: inherit;
+    transition: color .15s, border-color .15s, transform .12s;
+  }
+  .wiz-close:hover { color: #fb7185; border-color: rgba(251, 113, 133, .5); transform: scale(1.08); }
+  .wiz-body { padding: 10px 28px 24px; }
+  .wiz h2 {
+    font-size: 19px; margin-bottom: 4px; font-weight: 800;
+    background: var(--grad);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .wiz h3 { font-size: 14px; margin: 20px 0 8px; color: var(--accent2); font-weight: 800; }
+  .wiz-grid { display: grid; grid-template-columns: 200px 1fr; gap: 8px 12px; align-items: center; }
+  .wiz-grid label { color: var(--muted); font-size: 13px; }
+  .map-row { display: grid; grid-template-columns: minmax(160px, 1fr) 24px minmax(200px, 1.2fr); gap: 8px; align-items: center; margin-bottom: 5px; }
+  .map-row .src { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .map-row .arr { color: var(--accent); text-align: center; }
+  /* выпадающий список с поиском (для длинных списков мастера) */
+  .cbox { position: relative; min-width: 0; }
+  .cbox-btn {
+    width: 100%; text-align: left; cursor: pointer;
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+    border-radius: 9px; padding: 7px 30px 7px 11px; font-size: 14px; font-family: inherit;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .cbox-btn::after {
+    content: "▾"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: 11px; pointer-events: none;
+  }
+  .cbox-btn:hover { border-color: var(--border2); }
+  .cbox-pop {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 40;
+    background: #1a2040; border: 1px solid var(--border2); border-radius: 10px;
+    box-shadow: 0 16px 44px rgba(3, 6, 20, .8); padding: 8px; min-width: 240px;
+  }
+  .cbox-q { width: 100%; margin-bottom: 6px; }
+  .cbox-list { max-height: 240px; overflow-y: auto; }
+  .cbox-it { padding: 6px 9px; border-radius: 7px; cursor: pointer; font-size: 13px; }
+  .cbox-it:hover { background: rgba(139, 92, 246, .18); }
+  .cbox-it.sel { background: rgba(34, 211, 238, .14); color: var(--accent2); }
+  .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px 16px; }
+  .pos-grid .pr { display: flex; gap: 8px; align-items: center; font-size: 13px; min-width: 0; }
+  .pos-grid .pr b {
+    flex: 0 0 84px; min-width: 0; font-size: 11.5px; line-height: 1.25;
+    white-space: normal; word-break: break-word; overflow: hidden;
+    max-height: 3.8em; color: #c6cdea;
+  }
+  .pos-grid .pr select { flex: 1 1 auto; min-width: 0; }
+  .badge {
+    font-size: 11px; background: rgba(139, 92, 246, .10); border: 1px solid var(--border);
+    border-radius: 999px; padding: 2.5px 9px; color: var(--muted); font-weight: 600;
+  }
+  .toolbar { display: flex; gap: 8px; margin: 10px 0 16px; flex-wrap: wrap; }
+
+  /* ---------- кастомные курсоры под дизайн ---------- */
+  :root {
+    --cur-default: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='22'%20height='22'%20viewBox='0%200%2022%2022'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%238b5cf6'/%3E%3Cstop%20offset='1'%20stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath%20d='M4.5%201.5%20L4.5%2017.5%20L8.7%2013.9%20L11.2%2019.6%20L13.9%2018.4%20L11.4%2012.8%20L16.6%2012.3%20Z'%20fill='%23eef1fd'%20stroke='url(%23g)'%20stroke-width='1.3'%20stroke-linejoin='round'/%3E%3C/svg%3E") 4 2;
+    --cur-point: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='24'%20height='24'%20viewBox='0%200%2024%2024'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%238b5cf6'/%3E%3Cstop%20offset='1'%20stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath%20d='M9.8%203.2c0-1%20.8-1.7%201.7-1.7s1.7.7%201.7%201.7v7h.9V6.4c0-.9.7-1.6%201.6-1.6s1.6.7%201.6%201.6v4.8h.9V8.6c0-.8.7-1.5%201.5-1.5s1.5.7%201.5%201.5v6.6c0%203.9-2.6%206.6-6.5%206.6h-1.3c-2.4%200-3.9-.8-5.1-2.6l-3-4.4c-.6-.9-.4-2%20.5-2.6.8-.5%201.9-.3%202.5.5l1.5%202V3.2z'%20fill='url(%23g)'%20stroke='%230a0d1d'%20stroke-width='1.1'%20stroke-linejoin='round'/%3E%3C/svg%3E") 11 2;
+  }
+  body { cursor: var(--cur-default), default; }
+  button, select, a, .tab-btn, .cbox-btn, .cbox-it,
+  table.players th, table.players tbody tr,
+  .role-row, .sim-row, .col-chip, .dropzone, .role-card summary,
+  .star-btn, .head-cats .hc, .metric-cat,
+  input[type=checkbox], input[type=radio], label:has(> input[type=checkbox]), label:has(> input[type=radio]),
+  .w-row .del, .shdel, .wiz-close {
+    cursor: var(--cur-point), pointer;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="logo-ball">⚽</span><span class="logo-text">Скаут-индексы</span> <span class="logo-tag">v2 эксперимент</span></h1>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="players">Игроки</button>
+    <button class="tab-btn" data-tab="card">Карточка</button>
+    <button class="tab-btn" data-tab="scout">Скаутинг</button>
+    <button class="tab-btn" data-tab="short">Шорт-лист</button>
+    <button class="tab-btn" data-tab="roles">Роли и веса</button>
+    <button class="tab-btn" data-tab="data">Данные</button>
+  </nav>
+  <div class="header-info" id="headerInfo">Данные не загружены</div>
+</header>
+<main>
+
+  <!-- ИГРОКИ (основная лига) -->
+  <section class="tab-page active" id="page-players">
+    <div class="filters">
+      <input type="text" id="fSearch" placeholder="Поиск игрока или команды...">
+      <select id="fGroup"></select>
+      <select id="fTeam"><option value="">Все команды</option></select>
+      <span class="badge" id="fCount"></span>
+    </div>
+    <div class="table-wrap"><table class="players">
+      <thead id="plHead"></thead>
+      <tbody id="plBody"></tbody>
+    </table></div>
+    <p class="hint" id="playersEmpty" style="display:none; padding:30px; text-align:center;">
+      Сначала загрузите выгрузку основной лиги на вкладке «Данные».
+    </p>
+  </section>
+
+  <!-- КАРТОЧКА -->
+  <section class="tab-page" id="page-card">
+    <div id="cardContent"><p class="empty-note">Выберите игрока в списке «Игроки» или «Скаутинг».</p></div>
+  </section>
+
+  <!-- СКАУТИНГ -->
+  <section class="tab-page" id="page-scout">
+    <div id="scoutNoMain" class="empty-note" style="display:none">
+      Сначала загрузите основную лигу на вкладке «Данные» — с ней сравниваются игроки скаутинговых лиг.
+    </div>
+    <div id="scoutBody">
+      <div class="cfg-section">
+        <h3 style="color:var(--accent2)">Лиги для скаутинга</h3>
+        <div id="leaguesList"></div>
+        <div class="dropzone small" id="scoutDrop">
+          Перетащите выгрузку другой лиги — CSV или Excel, любой источник (незнакомый формат откроет мастер импорта)<br>или <b>нажмите, чтобы выбрать файл</b>
+          <input type="file" id="scoutFile" accept=".csv,.xlsx,.xls" style="display:none">
+        </div>
+        <p class="hint">Коэффициент силы лиги относительно основной (основная = 1): каждый показатель игрока за 90 минут
+        умножается на коэффициент — например, 0,5 гола × 1,2 = 0,6 гола «в пересчёте на основную лигу». Метрики
+        «чем меньше — тем лучше» (⇩) делятся на коэффициент, процентные ограничены 100. Перцентили и индексы считаются
+        по пересчитанным показателям среди игроков основной лиги. &gt;1 — лига сильнее основной, &lt;1 — слабее.
+        При включённой стилевой нормализации перед коэффициентом применяется отношение медиан лиг по каждой метрике
+        (внутри группы позиций): 6,2 единоборства × (медиана осн. 9,0 / медиана своей 6,5) = 8,6 — так убирается
+        разница в стиле лиг (оборонительная лига «накручивает» всем защитные метрики).</p>
+      </div>
+      <div class="settings-box">
+        <b style="color:var(--muted)">Уровни рекомендаций:</b>
+        <label>⭐ Звёздные — топ <input type="number" id="recoStar" min="1" max="100" step="1">% осн. лиги</label>
+        <label>🟢 Готов усилить — топ <input type="number" id="recoReady" min="1" max="100" step="1">%</label>
+        <label>🔵 Перспективные — возраст до <input type="number" id="recoAge" min="15" max="30" step="1"> лет</label>
+        <label title="Показатель игрока умножается на отношение медиан (осн. лига / его лига) по каждой метрике внутри его группы позиций. Убирает перекос стиля лиг: например, в более оборонительной лиге у всех больше единоборств — без нормализации чужие защитники получают заниженные перцентили.">
+          <input type="checkbox" id="styleNormChk" style="vertical-align:-2px"> Стилевая нормализация (по медианам)</label>
+      </div>
+      <details class="role-card" style="margin-bottom:12px">
+        <summary>Столбцы таблицы</summary>
+        <div class="body">
+          <div class="col-chips" id="colChips"></div>
+          <div class="toolbar" style="margin-bottom:0">
+            <input type="text" id="presetName" placeholder="Название набора" style="width:180px">
+            <button class="act sec" id="presetSave">Сохранить набор</button>
+            <select id="presetSel"></select>
+            <button class="act sec" id="presetLoad">Загрузить</button>
+            <button class="act danger" id="presetDel">Удалить</button>
+          </div>
+          <p class="hint">Галочка — показать/скрыть столбец, перетаскивание чипа — изменить порядок столбцов.
+          Наборы хранятся в настройках и попадают в файл «Сохранить настройки» на вкладке «Роли и веса».</p>
+        </div>
+      </details>
+      <div class="filters">
+        <input type="text" id="sSearch" placeholder="Поиск игрока или команды...">
+        <select id="sGroup"></select>
+        <select id="sLeague"><option value="">Все лиги</option></select>
+        <select id="sReco">
+          <option value="">Все игроки</option>
+          <option value="any">Только рекомендации</option>
+          <option value="star">⭐ Звёздные</option>
+          <option value="ready">🟢 Готов усилить</option>
+          <option value="prosp">🔵 Перспективные</option>
+        </select>
+        <span class="badge" id="sCount"></span>
+      </div>
+      <div class="table-wrap"><table class="players">
+        <thead id="scHead"></thead>
+        <tbody id="scBody"></tbody>
+      </table></div>
+      <p class="hint">Индексы в таблице посчитаны по показателям, пересчитанным на коэффициент лиги, относительно игроков
+      основной лиги. «Место в осн. лиге» — куда игрок встал бы по своей лучшей роли среди игроков основной лиги этой группы позиций.</p>
+    </div>
+  </section>
+
+  <!-- ШОРТ-ЛИСТ -->
+  <section class="tab-page" id="page-short">
+    <div id="shortContent"></div>
+  </section>
+
+  <!-- РОЛИ -->
+  <section class="tab-page" id="page-roles">
+    <div class="toolbar">
+      <button class="act sec" id="btnExportCfg">Сохранить настройки в файл</button>
+      <button class="act sec" id="btnImportCfg">Загрузить настройки из файла</button>
+      <button class="act danger" id="btnResetCfg">Сбросить к настройкам по умолчанию</button>
+    </div>
+    <p class="hint">Веса не обязаны в сумме давать 1 — при расчёте они нормализуются автоматически.
+       Метрики с пометкой «⇩» инвертированы: чем меньше значение, тем выше перцентиль (потери, ошибки, фолы).</p>
+    <div class="cfg-section">
+      <h3>Составные метрики</h3>
+      <p class="hint">Своя метрика из нескольких показателей, напр. «Навесы» = перцентиль количества × 0,6 + перцентиль точности × 0,4. Составные метрики можно использовать в ролях.</p>
+      <div id="compList"></div>
+      <button class="act sec" id="btnAddComp">+ Добавить составную метрику</button>
+    </div>
+    <div class="cfg-section">
+      <h3>Роли по группам позиций</h3>
+      <div id="rolesList"></div>
+    </div>
+  </section>
+
+  <!-- ДАННЫЕ -->
+  <section class="tab-page" id="page-data">
+    <p class="hint" style="margin-bottom:10px">Здесь загружается <b>основная лига</b> — эталон, с которым сравниваются все остальные. Лиги для скаутинга добавляются на вкладке «Скаутинг».</p>
+    <div class="dropzone" id="dropzone">
+      Перетащите сюда CSV-файл (основная лига) — РуСтат распознаётся сразу,<br>
+      незнакомый источник откроет мастер импорта, Excel конвертируется сам<br>или <b>нажмите, чтобы выбрать файл</b>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none">
+    </div>
+    <div class="settings-box">
+      <label>Минимум минут для участия в рейтинге:
+        <input type="number" id="minMinutes" step="50" min="0"></label>
+      <span class="hint" style="margin:0">Игроки с меньшим числом минут показываются серым, не влияют на перцентили и не попадают в рекомендации.</span>
+    </div>
+    <div class="settings-box" id="dataInfo" style="display:none"></div>
+    <div class="cfg-section">
+      <h3 style="color:var(--accent2); margin-bottom:8px">Профили источников</h3>
+      <p class="hint">Профиль создаётся автоматически при первом импорте незнакомого формата через мастер
+      и дальше применяется к таким файлам сам. «Изменить» открывает мастер с текущими настройками профиля —
+      после сохранения все лиги, загруженные этим профилем, пересобираются автоматически.</p>
+      <div id="profilesList"></div>
+    </div>
+    <div class="settings-box">
+      <button class="act sec" id="btnFromV1">⬅ Перенести настройки и данные из версии 1</button>
+      <span class="hint" style="margin:0">Роли, веса, столбцы, лиги и шорт-лист первой версии — если вы открывали её в этом же браузере.</span>
+    </div>
+  </section>
+
+</main>
+<div id="wizardHost"></div>
+<script src="xlsx.full.min.js"></script>
+<script>
+"use strict";
+
+/* ================= КОНСТАНТЫ ================= */
+
+/* v2: своё хранилище, не пересекается с первой версией */
+const LS_CSV = "scout2_csv";
+const LS_CFG = "scout2_cfg";
+const LS_META = "scout2_meta";
+const LS_SCOUT = "scout2_scout";
+const LS_SHORT = "scout2_shortlist";
+
+const INVERTED = new Set([
+  "Потери", "Потери при передачах", "Потери индивидуальные",
+  "Потери мяча на своей половине", "Единоборства неудачные", "Обводки неудачные",
+  "Обработки мяча неудачные", "ТТД неудачные", "Фолы", "Офсайды",
+  "Грубые ошибки", "Голевые ошибки",
+  "Желтые карточки", "Жёлтые карточки", "Красные карточки", "Предупреждения", "Удаления"
+]);
+
+const META_COLS = new Set(["№","Игрок","Команда","Возраст","Рост","Вес","Гражданство","Index","Минут на поле","Позиция"]);
+
+const GROUPS = [
+  { key: "CB", name: "Центральные защитники" },
+  { key: "FB", name: "Крайние защитники" },
+  { key: "CM", name: "Опорные / центральные ПЗ" },
+  { key: "W",  name: "Вингеры / крайние ПЗ" },
+  { key: "AM", name: "Атакующие ПЗ (десятки)" },
+  { key: "ST", name: "Форварды" },
+];
+const GROUP_NAME = Object.fromEntries(GROUPS.map(g => [g.key, g.name]));
+
+function positionGroup(pos) {
+  if (!pos) return null;
+  const parts = pos.trim().split(/\s+/);
+  const line = parts[0] || "";
+  const flank = parts[1] || "";
+  const isWide = flank === "П" || flank === "Л";
+  if (line === "З")  return isWide ? "FB" : "CB";
+  if (line === "ЗП") return "CM";
+  if (line === "П")  return isWide ? "W" : "CM";
+  if (line === "АП") return isWide ? "W" : "AM";
+  if (line === "Ф")  return "ST";
+  return null;
+}
+
+const METRIC_CATS = [
+  ["Атака", ["Голы","xG (ожидаемые голы)","NxG (чистый xG, разница xGT - xGOPP)","Удары","Удары в створ","Удары точные, %","xGPS (xG на удар)","Удары из штрафной","Удары из-за штрафной","Удары головой","Голы забитые головой","Голевые моменты","Голевые моменты удачные, %","ТТД в штрафной соперника","Полученные передачи чистые в штрафной соперника","Офсайды"]],
+  ["Созидание", ["Передачи голевые","xA (ожидаемые передачи)","Передачи под удар","Голевые моменты создал","Участие в голевых атаках","Передачи в штрафную","Передачи в штрафную точные, %","Навесы","Навесы точные, %"]],
+  ["Пас", ["Передачи","Передачи точные, %","Передачи длинные","Передачи длинные точные, %","Передачи вперед в финальную треть","Передачи вперед в финальную треть точные, %","Передачи прогрессивные","Передачи прогрессивные точные","Передачи прогрессивные точные, %","Передачи прогрессивные, %"]],
+  ["Продвижение", ["Обводки","Обводки удачные, %","Обводки в финальной трети","Обводки в финальной трети удачные, %","Ведения мяча","Входы в финальную треть","Входы в финальную треть через пас","Входы в финальную треть через продвижение","Полученные передачи чистые в финальной трети","Фолы на игроке"]],
+  ["Оборона", ["Единоборства","Единоборства удачные, %","Единоборства вверху","Единоборства вверху удачные, %","Единоборства в атаке","Единоборства в атаке удачные, %","Отборы","Отборы удачные, %","Овладевания мячом","Овладевания мячом на половине поля соперника"]],
+  ["Надёжность", ["Потери","Потери при передачах","Потери мяча на своей половине","ТТД","ТТД удачные, %","Фолы","Грубые ошибки","Голевые ошибки","Желтые карточки","Жёлтые карточки","Предупреждения","Красные карточки","Удаления"]],
+];
+
+// раздел метрики по умолчанию (первое вхождение в METRIC_CATS)
+const DEFAULT_CAT = {};
+METRIC_CATS.forEach(([c, ms]) => ms.forEach(m => { if (!DEFAULT_CAT[m]) DEFAULT_CAT[m] = c; }));
+
+function metricCategory(m) {
+  const o = cfg?.catAssign?.[m];
+  if (o && (o === "Прочее" || METRIC_CATS.some(([c]) => c === o))) return o;
+  return DEFAULT_CAT[m] || "Прочее";
+}
+
+// текущая раскладка метрик по разделам (с учётом перетаскиваний пользователя)
+function buildMetricCats() {
+  const catNames = [...METRIC_CATS.map(([c]) => c), "Прочее"];
+  return catNames.map(cat => {
+    const inCat = metricCols.filter(m => metricCategory(m) === cat);
+    const defOrder = METRIC_CATS.find(([c]) => c === cat)?.[1] || [];
+    inCat.sort((a, b) => {
+      const ia = defOrder.indexOf(a), ib = defOrder.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+    return [cat, inCat];
+  });
+}
+
+/* ---- столбцы таблицы скаутинга ---- */
+const SCOUT_COL_LABELS = {
+  league: "Лига", team: "Команда", age: "Возраст", minutes: "Минуты", pos: "Позиция",
+  reco: "Рекомендация", roles: "Индексы ролей", best: "Место в осн. лиге",
+};
+function defaultScoutCols() {
+  return ["league","team","age","minutes","pos","reco","roles",
+          ...METRIC_CATS.map(([c]) => "cat:" + c), "best"];
+}
+function colLabel(k) { return k.startsWith("cat:") ? k.slice(4) + " (ср.)" : SCOUT_COL_LABELS[k] || k; }
+function scoutColOrder() {
+  const def = defaultScoutCols();
+  const order = (cfg.scoutCols?.order || def).filter(k => def.includes(k));
+  for (const k of def) if (!order.includes(k)) order.push(k);
+  return order;
+}
+
+// средний перцентиль раздела для игрока (в шкале осн. лиги для скаут-игроков)
+function catAvgFor(p, cat) {
+  const mode = p.league?.isMain ? undefined : "adj";
+  let sum = 0, n = 0;
+  for (const m of metricCols) {
+    if (metricCategory(m) !== cat) continue;
+    const perc = metricPerc(p, m, mode);
+    if (perc !== null) { sum += perc; n++; }
+  }
+  return n ? Math.round(sum / n) : null;
+}
+
+/* ================= КОНФИГ ПО УМОЛЧАНИЮ ================= */
+
+function defaultReco() { return { star: 10, ready: 25, age: 21 }; }
+
+function defaultConfig() {
+  return {
+    minMinutes: 900,
+    reco: defaultReco(),
+    styleNorm: true,
+    catAssign: {},
+    scoutCols: { order: defaultScoutCols(), hidden: [] },
+    scoutColPresets: {},
+    colWidths: {},
+    profiles: {},
+    composites: [
+      { name: "Навесы (кол-во + качество)", parts: [["Навесы",0.6],["Навесы точные, %",0.4]] },
+      { name: "Обводки (кол-во + качество)", parts: [["Обводки",0.6],["Обводки удачные, %",0.4]] },
+      { name: "Единоборства (объём + качество)", parts: [["Единоборства",0.5],["Единоборства удачные, %",0.5]] },
+      { name: "Единоборства вверху (объём + качество)", parts: [["Единоборства вверху",0.5],["Единоборства вверху удачные, %",0.5]] },
+      { name: "Отборы (объём + качество)", parts: [["Отборы",0.5],["Отборы удачные, %",0.5]] },
+      { name: "Пас (объём + точность)", parts: [["Передачи",0.5],["Передачи точные, %",0.5]] },
+      { name: "Длинный пас (объём + точность)", parts: [["Передачи длинные",0.5],["Передачи длинные точные, %",0.5]] },
+      { name: "Пас в финальную треть (объём + точность)", parts: [["Передачи вперед в финальную треть",0.6],["Передачи вперед в финальную треть точные, %",0.4]] },
+    ],
+    roles: {
+      CB: [
+        { name: "Стоппер", parts: [
+          ["Единоборства (объём + качество)",0.25],["Единоборства вверху (объём + качество)",0.25],
+          ["Отборы (объём + качество)",0.2],["Овладевания мячом",0.1],["Грубые ошибки",0.1],["Голевые ошибки",0.1]] },
+        { name: "Распасовщик (ball-playing)", parts: [
+          ["Пас (объём + точность)",0.25],["Длинный пас (объём + точность)",0.2],
+          ["Пас в финальную треть (объём + точность)",0.25],["Единоборства (объём + качество)",0.15],["Потери",0.15]] },
+      ],
+      FB: [
+        { name: "Атакующий вингбек", parts: [
+          ["Навесы (кол-во + качество)",0.25],["Входы в финальную треть",0.15],["xA (ожидаемые передачи)",0.15],
+          ["Передачи под удар",0.1],["Обводки (кол-во + качество)",0.15],["Единоборства (объём + качество)",0.2]] },
+        { name: "Оборонительный крайний защитник", parts: [
+          ["Единоборства (объём + качество)",0.3],["Отборы (объём + качество)",0.25],
+          ["Единоборства вверху (объём + качество)",0.15],["Овладевания мячом",0.15],
+          ["Потери мяча на своей половине",0.1],["Грубые ошибки",0.05]] },
+      ],
+      CM: [
+        { name: "Разрушитель", parts: [
+          ["Отборы (объём + качество)",0.3],["Единоборства (объём + качество)",0.3],
+          ["Овладевания мячом",0.2],["Единоборства вверху (объём + качество)",0.1],["Фолы",0.1]] },
+        { name: "Глубинный плеймейкер", parts: [
+          ["Пас (объём + точность)",0.25],["Длинный пас (объём + точность)",0.2],
+          ["Пас в финальную треть (объём + точность)",0.25],["Потери при передачах",0.1],
+          ["ТТД удачные, %",0.1],["xA (ожидаемые передачи)",0.1]] },
+        { name: "Бокс-ту-бокс", parts: [
+          ["Единоборства (объём + качество)",0.2],["Отборы (объём + качество)",0.15],
+          ["Входы в финальную треть",0.15],["Обводки (кол-во + качество)",0.1],
+          ["Удары",0.1],["xG (ожидаемые голы)",0.1],["Участие в голевых атаках",0.1],["Пас (объём + точность)",0.1]] },
+      ],
+      W: [
+        { name: "Классический вингер", parts: [
+          ["Навесы (кол-во + качество)",0.3],["Обводки (кол-во + качество)",0.2],
+          ["xA (ожидаемые передачи)",0.15],["Передачи под удар",0.1],
+          ["Входы в финальную треть",0.1],["Передачи в штрафную",0.15]] },
+        { name: "Инвертированный вингер", parts: [
+          ["Удары",0.2],["xG (ожидаемые голы)",0.2],["Обводки (кол-во + качество)",0.2],
+          ["Голы",0.15],["ТТД в штрафной соперника",0.1],["xA (ожидаемые передачи)",0.15]] },
+        { name: "Фланговый плеймейкер", parts: [
+          ["xA (ожидаемые передачи)",0.25],["Передачи под удар",0.2],["Пас (объём + точность)",0.15],
+          ["Передачи в штрафную",0.2],["Голевые моменты создал",0.2]] },
+      ],
+      AM: [
+        { name: "Классическая «десятка»", parts: [
+          ["xA (ожидаемые передачи)",0.25],["Передачи под удар",0.2],["Голевые моменты создал",0.15],
+          ["Обводки (кол-во + качество)",0.15],["Пас в финальную треть (объём + точность)",0.1],["xG (ожидаемые голы)",0.15]] },
+        { name: "Теневой форвард", parts: [
+          ["xG (ожидаемые голы)",0.25],["Удары",0.2],["Голы",0.2],
+          ["ТТД в штрафной соперника",0.15],["Полученные передачи чистые в штрафной соперника",0.2]] },
+      ],
+      ST: [
+        { name: "Таргетмен", parts: [
+          ["Единоборства вверху (объём + качество)",0.3],["Удары головой",0.15],["Голы забитые головой",0.1],
+          ["Единоборства в атаке",0.15],["xG (ожидаемые голы)",0.15],["Голы",0.15]] },
+        { name: "Завершитель (пенальти-бокс)", parts: [
+          ["Голы",0.25],["xG (ожидаемые голы)",0.25],["Удары в створ",0.15],
+          ["ТТД в штрафной соперника",0.15],["Полученные передачи чистые в штрафной соперника",0.1],
+          ["Голевые моменты удачные, %",0.1]] },
+        { name: "Оттянутый форвард", parts: [
+          ["xA (ожидаемые передачи)",0.2],["Передачи под удар",0.15],["Пас (объём + точность)",0.15],
+          ["Участие в голевых атаках",0.15],["Обводки (кол-во + качество)",0.15],
+          ["xG (ожидаемые голы)",0.1],["Голы",0.1]] },
+        { name: "Скоростной (бежит за спину)", parts: [
+          ["Полученные передачи чистые в штрафной соперника",0.25],
+          ["Полученные передачи чистые в финальной трети",0.15],["xG (ожидаемые голы)",0.2],
+          ["Обводки (кол-во + качество)",0.15],["Голы",0.15],
+          ["Входы в финальную треть через продвижение",0.1]] },
+      ],
+    },
+  };
+}
+
+/* ================= СОСТОЯНИЕ ================= */
+
+let cfg = loadCfg();
+let mainLeague = null;      // {id:'main', name, coef:1, isMain, fileName, players, percCache}
+let scoutLeagues = [];      // [{id, name, coef, fileName, text, loaded, players, percCache}]
+let metricCols = [];        // из основной лиги
+let mainRoleDist = {};      // {group: [sortedIdx[] по каждой роли]}
+let shortlist = loadShortlist(); // [{name, team}]
+let selectedPlayer = null;
+let selectedRoleIdx = 0;
+let compareKey = "";        // ключ игрока осн. лиги для сравнения
+let sortState = { col: "__role0", dir: -1 };
+let scSortState = { col: "__best", dir: -1 };
+
+function loadCfg() {
+  let c = null;
+  try {
+    const raw = localStorage.getItem(LS_CFG);
+    if (raw) { const p = JSON.parse(raw); if (p && p.roles) c = p; }
+  } catch (e) {}
+  if (!c) c = defaultConfig();
+  if (!c.reco) c.reco = defaultReco();
+  if (c.styleNorm === undefined) c.styleNorm = true;
+  if (!c.catAssign) c.catAssign = {};
+  if (!c.scoutCols || !Array.isArray(c.scoutCols.order)) c.scoutCols = { order: defaultScoutCols(), hidden: [] };
+  if (!Array.isArray(c.scoutCols.hidden)) c.scoutCols.hidden = [];
+  if (!c.scoutColPresets) c.scoutColPresets = {};
+  if (!c.colWidths) c.colWidths = {};
+  if (!c.profiles) c.profiles = {};
+  return c;
+}
+function saveCfg() { try { localStorage.setItem(LS_CFG, JSON.stringify(cfg)); } catch (e) {} }
+function loadShortlist() {
+  try { const r = JSON.parse(localStorage.getItem(LS_SHORT) || "[]"); return Array.isArray(r) ? r : []; } catch (e) { return []; }
+}
+function saveShortlist() { try { localStorage.setItem(LS_SHORT, JSON.stringify(shortlist)); } catch (e) {} }
+
+function playerKey(p) { return p.name + "|" + p.team; }
+function inShortlist(p) { return shortlist.some(s => s.name === p.name && s.team === p.team); }
+function allLeagues() { return mainLeague ? [mainLeague, ...scoutLeagues] : [...scoutLeagues]; }
+function findPlayerByKey(key, preferLeagueId) {
+  if (preferLeagueId) {
+    const lg = allLeagues().find(l => l.id === preferLeagueId);
+    const p = lg?.players.find(pp => playerKey(pp) === key);
+    if (p) return p;
+  }
+  for (const lg of allLeagues()) {
+    const p = lg.players.find(pp => playerKey(pp) === key);
+    if (p) return p;
+  }
+  return null;
+}
+
+/* ================= ПАРСИНГ CSV ================= */
+
+function parseNumber(s) {
+  if (s === undefined || s === null) return null;
+  s = s.trim();
+  if (s === "" || s === "-") return 0;      // в РуСтат «-» = ноль действий
+  s = s.replace("%", "").replace(",", ".").replace(/\s/g, "");
+  const v = parseFloat(s);
+  return isNaN(v) ? null : v;
+}
+
+function decodeBuffer(buf) {
+  let text = new TextDecoder("utf-8", { fatal: false }).decode(buf);
+  const bad = (text.match(/�/g) || []).length;
+  if (bad > 5) text = new TextDecoder("windows-1251").decode(buf);
+  return text;
+}
+
+// файл любого формата -> текст CSV: Excel (.xlsx/.xls) конвертируется на лету
+function bufferToText(buf) {
+  const u8 = new Uint8Array(buf);
+  const isXlsx = u8[0] === 0x50 && u8[1] === 0x4B;        // zip-контейнер .xlsx
+  const isXls = u8[0] === 0xD0 && u8[1] === 0xCF;         // старый бинарный .xls
+  if (isXlsx || isXls) {
+    if (typeof XLSX === "undefined") { alert("Не найдена библиотека xlsx.full.min.js рядом со страницей — Excel-файлы недоступны."); return ""; }
+    const wb = XLSX.read(buf, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_csv(ws, { FS: ";", blankrows: false });
+  }
+  return decodeBuffer(buf);
+}
+
+/* ---- универсальный разбор таблицы: авто-разделитель, кавычки ---- */
+function detectDelimiter(line) {
+  let best = ";", bestN = -1;
+  for (const d of [";", ",", "\t"]) {
+    const n = splitLine(line, d).length;
+    if (n > bestN) { bestN = n; best = d; }
+  }
+  return best;
+}
+function splitLine(line, d) {
+  const out = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
+      else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === d) { out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+function parseTable(text) {
+  const lines = (text || "").split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (lines.length < 2) return null;
+  const delim = detectDelimiter(lines[0]);
+  const headers = splitLine(lines[0], delim);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const f = splitLine(lines[i], delim);
+    if (f.length >= headers.length - 2) rows.push(f);
+  }
+  return headers.length >= 3 && rows.length ? { headers, rows, delim } : null;
+}
+
+/* ---- профили источников ----
+   Профиль описывает, как читать файл: какие колонки — реквизиты (имя, команда,
+   позиция, минуты...), какие — метрики (и во что их переводить), в каких
+   единицах статистика и как раскладывать позиции по группам. */
+const RUSTAT_SKIP = new Set(["№", "Вес", "Index"]);
+const RUSTAT_PROFILE = {
+  name: "РуСтат (встроенный)", builtin: true,
+  meta: { name: "Игрок", team: "Команда", pos: "Позиция", minutes: "Минут на поле", age: "Возраст", height: "Рост", nat: "Гражданство" },
+  unit: "per90",
+  posMode: "rustat",
+  posMap: {},
+  columnMap: null, // null = все колонки, кроме реквизитов и служебных, как есть
+};
+function isRustatHeaders(headers) {
+  return headers.includes("Игрок") && headers.includes("Позиция") && headers.includes("Минут на поле");
+}
+function profileByName(n) {
+  if (!n || n === "__rustat") return RUSTAT_PROFILE;
+  return cfg.profiles[n] || null;
+}
+function findMatchingProfile(headers) {
+  for (const [name, pr] of Object.entries(cfg.profiles)) {
+    const metaCols = Object.values(pr.meta).filter(Boolean);
+    if (!metaCols.every(c => headers.includes(c))) continue;
+    const srcCols = Object.keys(pr.columnMap || {});
+    if (!srcCols.length) continue;
+    const present = srcCols.filter(c => headers.includes(c)).length;
+    if (present >= srcCols.length * 0.8) return pr;
+  }
+  return null;
+}
+
+// собрать игроков и список метрик из таблицы по профилю
+function buildLeagueData(table, profile) {
+  const ix = Object.fromEntries(table.headers.map((h, i) => [h, i]));
+  const gi = k => profile.meta[k] !== undefined && ix[profile.meta[k]] !== undefined ? ix[profile.meta[k]] : -1;
+  const iName = gi("name"), iTeam = gi("team"), iPos = gi("pos"),
+        iMin = gi("minutes"), iAge = gi("age"), iH = gi("height"), iNat = gi("nat");
+  if (iName < 0 || iPos < 0 || iMin < 0) return null;
+  let map = profile.columnMap;
+  if (!map) {
+    map = {};
+    const metaSet = new Set(Object.values(profile.meta));
+    for (const h of table.headers) if (!metaSet.has(h) && !RUSTAT_SKIP.has(h)) map[h] = h;
+  }
+  const metrics = [...new Set(Object.values(map))];
+  const players = [];
+  for (const f of table.rows) {
+    const minutes = parseNumber(f[iMin]) || 0;
+    const posRaw = (f[iPos] || "").trim();
+    const group = profile.posMode === "rustat"
+      ? positionGroup(posRaw)
+      : (profile.posMap[posRaw] !== undefined ? profile.posMap[posRaw] : guessGroupFor(posRaw));
+    const p = {
+      name: (f[iName] || "").trim(),
+      team: iTeam >= 0 ? (f[iTeam] || "").trim() : "",
+      age: iAge >= 0 ? parseNumber(f[iAge]) : null,
+      height: iH >= 0 ? parseNumber(f[iH]) : null,
+      nat: iNat >= 0 ? (f[iNat] || "").trim() : "",
+      minutes, pos: posRaw, group, stats: {},
+    };
+    for (const [src, dst] of Object.entries(map)) {
+      let v = parseNumber(f[ix[src]]);
+      if (v !== null) {
+        const perc = dst.includes("%") || src.includes("%");
+        const toPer90 = profile.unit === "total" ? !perc
+          : profile.unit === "auto" ? (!perc && !/per ?90/i.test(src))
+          : false;
+        if (toPer90) v = minutes > 0 ? v / minutes * 90 : 0;
+      }
+      p.stats[dst] = v;
+    }
+    if (p.name) players.push(p);
+  }
+  return players.length ? { metrics, players } : null;
+}
+
+/* ---- импорт файла: РуСтат и сохранённые профили — сразу, остальное — через мастер ---- */
+function importFile(text, fileName, target) {
+  if (target === "scout" && !mainLeague) { alert("Сначала загрузите основную лигу на вкладке «Данные»."); return; }
+  const table = parseTable(text);
+  if (!table) { alert("Файл не распознан: не похоже на таблицу CSV."); return; }
+  let profile = isRustatHeaders(table.headers) ? RUSTAT_PROFILE : findMatchingProfile(table.headers);
+  if (profile) applyImport(table, profile, fileName, target, text);
+  else openWizard(table, fileName, target, text);
+}
+
+function applyImport(table, profile, fileName, target, text) {
+  const data = buildLeagueData(table, profile);
+  if (!data) { alert("Не удалось прочитать файл по профилю «" + profile.name + "»: проверьте колонки реквизитов."); return; }
+  const profileName = profile.builtin ? "__rustat" : profile.name;
+  if (target === "main") {
+    metricCols = data.metrics;
+    mainLeague = {
+      id: "main", name: "Основная лига", coef: 1, isMain: true,
+      fileName: fileName || "данные", players: data.players, percCache: {},
+    };
+    mainLeague.players.forEach(p => p.league = mainLeague);
+    try {
+      localStorage.setItem(LS_CSV, text);
+      localStorage.setItem(LS_META, JSON.stringify({ fileName: mainLeague.fileName, loaded: new Date().toLocaleString("ru"), profileName }));
+    } catch (e) { alert("Не удалось сохранить данные в браузере (лимит хранилища) — файл будет доступен до перезагрузки страницы."); }
+  } else {
+    if (profile === RUSTAT_PROFILE) {
+      const shared = data.metrics.filter(m => metricCols.includes(m)).length;
+      if (shared === 0) {
+        alert("В этом файле нет ни одной метрики из словаря основной лиги — сравнивать не по чему. Лига не добавлена.");
+        return;
+      }
+      if (shared < metricCols.length * 0.8) {
+        const ok = confirm(
+          `Наборы колонок различаются: совпадает ${shared} из ${metricCols.length} метрик словаря основной лиги.\n\n` +
+          `Добавить лигу? Индексы посчитаются по совпадающим метрикам, а недостающие будут видны ` +
+          `в диагностике покрытия (⚠ в списке лиг и в карточках игроков).\n\n` +
+          `Чтобы совпадение было полным, выгружайте обе лиги из РуСтат с одинаковым набором показателей.`);
+        if (!ok) return;
+      }
+    }
+    const name = (fileName || "Лига").replace(/\.(csv|xlsx|xls|txt)$/i, "").replace(/^\d{2}_\d{2}_\d{4}_/, "").replace(/_/g, " ");
+    const lg = {
+      id: "lg" + Math.floor(Math.random() * 1e9).toString(36) + scoutLeagues.length,
+      name, coef: 0.8, fileName: fileName || "", text, profileName,
+      loaded: new Date().toLocaleString("ru"),
+      players: data.players, metrics: data.metrics, percCache: {},
+    };
+    lg.players.forEach(p => p.league = lg);
+    scoutLeagues.push(lg);
+    saveScoutLeagues();
+  }
+  recomputeAll();
+  renderAll();
+}
+
+/* ---- мастер импорта незнакомого формата ---- */
+
+function normHdr(s) { return String(s).toLowerCase().replace(/[^a-zа-яё0-9%]/g, ""); }
+
+const META_GUESS = {
+  name: ["игрок", "player", "playername", "name", "fullname", "футболист", "фио"],
+  team: ["команда", "team", "club", "squad", "клуб"],
+  pos: ["позиция", "position", "pos", "амплуа", "primaryposition"],
+  minutes: ["минутнаполе", "минуты", "minutesplayed", "minutes", "mins", "min", "времянаполе"],
+  age: ["возраст", "age"],
+  height: ["рост", "height", "heightcm"],
+  nat: ["гражданство", "passportcountry", "nationality", "citizenship", "nation", "country", "страна"],
+};
+// частые английские метрики -> словарь платформы
+const EN_METRIC_GUESS = {
+  goals: "Голы", assists: "Передачи голевые", xg: "xG (ожидаемые голы)", xa: "xA (ожидаемые передачи)",
+  shots: "Удары", shotsontarget: "Удары в створ", crosses: "Навесы", crossesaccurate: "Навесы точные",
+  passes: "Передачи", passesaccurate: "Передачи точные", keypasses: "Передачи под удар",
+  dribbles: "Обводки", tackles: "Отборы", interceptions: "Овладевания мячом",
+  duels: "Единоборства", aerialduels: "Единоборства вверху", fouls: "Фолы", offsides: "Офсайды",
+  longpasses: "Передачи длинные", headedgoals: "Голы забитые головой",
+};
+const POS_GUESS = {
+  GK: null, ВРТ: null, ВР: null,
+  RB: "FB", LB: "FB", RWB: "FB", LWB: "FB", DR: "FB", DL: "FB", FB: "FB", RB5: "FB", LB5: "FB",
+  CB: "CB", DC: "CB", CD: "CB", LCB: "CB", RCB: "CB", LCB3: "CB", RCB3: "CB",
+  DM: "CM", DMC: "CM", CM: "CM", MC: "CM", CDM: "CM",
+  DMF: "CM", LDMF: "CM", RDMF: "CM", CMF: "CM", LCMF: "CM", RCMF: "CM",
+  RM: "W", LM: "W", RW: "W", LW: "W", AMR: "W", AML: "W", WF: "W",
+  LAMF: "W", RAMF: "W", LWF: "W", RWF: "W",
+  AM: "AM", AMC: "AM", CAM: "AM", AMF: "AM",
+  ST: "ST", CF: "ST", FW: "ST", F: "ST", FC: "ST",
+};
+// при нескольких позициях («LCB, LB») ориентируемся на ПЕРВУЮ — она номинальная
+function guessGroupFor(v) {
+  const up = String(v).trim().toUpperCase();
+  const first = up.split(/[\s,/]+/)[0];
+  if (first in POS_GUESS) return POS_GUESS[first];
+  if (up in POS_GUESS) return POS_GUESS[up];
+  return positionGroup(String(v).trim()); // нотация РуСтат
+}
+function guessMetaCol(headers, key) {
+  const cands = META_GUESS[key];
+  for (const h of headers) if (cands.includes(normHdr(h))) return h;
+  for (const h of headers) if (cands.some(c => normHdr(h).includes(c))) return h;
+  return "";
+}
+function guessMetricFor(src, dict) {
+  const n = normHdr(src);
+  for (const d of dict) if (normHdr(d) === n) return d;
+  if (EN_METRIC_GUESS[n] && dict.includes(EN_METRIC_GUESS[n])) return EN_METRIC_GUESS[n];
+  for (const d of dict) { const nd = normHdr(d); if (nd.length > 4 && (n.includes(nd) || nd.includes(n))) return d; }
+  return "";
+}
+function looksNumeric(table, colIdx) {
+  let ok = 0, n = 0;
+  for (const f of table.rows.slice(0, 25)) {
+    const s = (f[colIdx] || "").trim();
+    if (s === "") continue;
+    n++;
+    if (s === "-" || parseNumber(s) !== null && /[\d]/.test(s)) ok++;
+  }
+  return n > 0 && ok / n >= 0.6;
+}
+
+/* превращает длинные <select> в выпадашки с поиском; короткие оставляет как есть */
+function makeSearchable(root) {
+  if (!root) return;
+  root.querySelectorAll("select").forEach(sel => {
+    if (sel.dataset.cboxed || sel.options.length <= 12) return;
+    sel.dataset.cboxed = "1";
+    const box = document.createElement("div");
+    box.className = "cbox";
+    sel.parentNode.insertBefore(box, sel);
+    box.appendChild(sel);
+    sel.style.display = "none";
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "cbox-btn";
+    const pop = document.createElement("div");
+    pop.className = "cbox-pop"; pop.hidden = true;
+    pop.innerHTML = `<input type="text" class="cbox-q" placeholder="Поиск..."><div class="cbox-list"></div>`;
+    box.append(btn, pop);
+    const q = pop.querySelector(".cbox-q");
+    const list = pop.querySelector(".cbox-list");
+    const sync = () => btn.textContent = sel.selectedOptions[0]?.textContent.trim() || "—";
+    const renderList = () => {
+      const f = q.value.toLowerCase();
+      list.innerHTML = [...sel.options]
+        .filter(o => !f || o.textContent.toLowerCase().includes(f))
+        .map(o => `<div class="cbox-it ${o.selected ? "sel" : ""}" data-v="${esc(o.value)}">${esc(o.textContent.trim())}</div>`)
+        .join("") || `<div class="cbox-it" style="color:var(--muted); cursor:default">ничего не найдено</div>`;
+    };
+    const open = () => { pop.hidden = false; q.value = ""; renderList(); q.focus(); };
+    const close = () => { pop.hidden = true; };
+    const pick = v => {
+      sel.value = v;
+      sel.dispatchEvent(new Event("change"));
+      sync(); close();
+    };
+    btn.onclick = e => { e.preventDefault(); pop.hidden ? open() : close(); };
+    q.oninput = renderList;
+    q.onkeydown = e => {
+      if (e.key === "Escape") { e.stopPropagation(); close(); btn.focus(); }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const it = list.querySelector(".cbox-it[data-v]");
+        if (it) pick(it.dataset.v);
+      }
+    };
+    list.onclick = e => {
+      const it = e.target.closest(".cbox-it[data-v]");
+      if (it) pick(it.dataset.v);
+    };
+    sync();
+  });
+}
+// закрытие открытых списков кликом мимо (один слушатель на всех)
+document.addEventListener("pointerdown", e => {
+  document.querySelectorAll(".cbox-pop:not([hidden])").forEach(pop => {
+    if (!pop.closest(".cbox").contains(e.target)) pop.hidden = true;
+  });
+});
+
+let wiz = null; // {table, fileName, target, text}
+
+function openWizard(table, fileName, target, text, editProf) {
+  wiz = { table, fileName, target, text, editProf: editProf || null };
+  const isEdit = !!editProf;
+  const H = isEdit
+    ? [...new Set([...Object.values(editProf.meta || {}), ...Object.keys(editProf.columnMap || {})])].filter(Boolean)
+    : table.headers;
+  const dict = (!isEdit && target === "scout") ? metricCols : dictionaryNames();
+  const metaSel = key => {
+    const guess = isEdit ? (editProf.meta?.[key] || "") : guessMetaCol(H, key);
+    return `<select data-meta="${key}"><option value="">— нет —</option>` +
+      H.map(h => `<option ${h === guess ? "selected" : ""}>${esc(h)}</option>`).join("") + `</select>`;
+  };
+  document.getElementById("wizardHost").innerHTML = `
+  <div class="wiz-overlay"><div class="wiz">
+    <div class="wiz-head">
+      <h2>${isEdit ? "Профиль источника: " + esc(editProf.name) : "Мастер импорта: " + esc(fileName || "файл")}</h2>
+      <button class="wiz-close" id="wizClose" title="Закрыть (Esc)">✕</button>
+    </div>
+    <div class="wiz-body">
+    <p class="hint">${isEdit
+      ? "Редактирование профиля. После сохранения все лиги, загруженные этим профилем, будут пересобраны с новыми настройками."
+      : `Формат не распознан автоматически. Один раз объясните платформе, как читать этот источник, —
+    настройка сохранится как профиль, и следующие файлы этого источника загрузятся сами.
+    Куда импортируем: <b>${target === "main" ? "основная лига" : "лига для скаутинга"}</b>.`}</p>
+
+    <h3>1. Колонки-реквизиты</h3>
+    <div class="wiz-grid">
+      <label>Игрок (обязательно)</label>${metaSel("name")}
+      <label>Позиция (обязательно)</label>${metaSel("pos")}
+      <label>Минуты на поле (обязательно)</label>${metaSel("minutes")}
+      <label>Команда</label>${metaSel("team")}
+      <label>Возраст</label>${metaSel("age")}
+      <label>Рост</label>${metaSel("height")}
+      <label>Гражданство (для флагов)</label>${metaSel("nat")}
+    </div>
+
+    <h3>2. В каких единицах статистика</h3>
+    ${(() => {
+      const u = isEdit ? (editProf.unit || "per90") : (H.some(h => /per ?90/i.test(h)) ? "auto" : "per90");
+      const r = (v, t) => `<label><input type="radio" name="wizUnit" value="${v}" ${u === v ? "checked" : ""}> ${t}</label><br>`;
+      return r("per90", "уже за 90 минут / средняя за матч") +
+             r("total", "суммарная за сезон — платформа сама пересчитает за 90 минут") +
+             r("auto", "смешанные, как в Wyscout: колонки «per 90» и «%» — как есть, остальные счётные — пересчёт за 90 минут");
+    })()}
+
+    <h3>3. Позиции → группы</h3>
+    <div id="wizPos" class="pos-grid"><p class="hint">Выберите колонку «Позиция» выше.</p></div>
+
+    <h3>4. Метрики</h3>
+    <p class="hint">${target === "scout"
+      ? "Сопоставьте колонки источника с метриками основной лиги. «— пропустить —» — колонка не импортируется, «как есть» — попадёт под своим названием (но сравниваться с основной лигой не будет)."
+      : "Сопоставьте колонки со словарём платформы — тогда существующие роли, веса и разделы продолжат работать. «Как есть» — колонка войдёт в словарь под собственным названием."}</p>
+    <div id="wizMap"></div>
+
+    <h3>5. Профиль источника</h3>
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+      <input type="text" id="wizProfileName" style="width:260px" value="${esc(isEdit ? editProf.name : (fileName || "Источник").replace(/\.(csv|xlsx|xls|txt)$/i, ""))}">
+      <button class="act" id="wizImport">${isEdit ? "Сохранить профиль" : "Импортировать и сохранить профиль"}</button>
+      <button class="act sec" id="wizCancel">Отмена</button>
+    </div>
+    <p class="hint" id="wizErr" style="color:#ff7a7a"></p>
+    </div>
+  </div></div>`;
+
+  const host = document.getElementById("wizardHost");
+  const metaVal = key => host.querySelector(`select[data-meta="${key}"]`).value;
+
+  const renderPos = () => {
+    const posCol = metaVal("pos");
+    const box = document.getElementById("wizPos");
+    if (!posCol) { box.innerHTML = `<p class="hint">Выберите колонку «Позиция» выше.</p>`; return; }
+    const pi = H.indexOf(posCol);
+    const vals = isEdit
+      ? Object.keys(editProf.posMap || {})
+      : [...new Set(wiz.table.rows.map(f => (f[pi] || "").trim()).filter(Boolean))].slice(0, 60);
+    box.innerHTML = vals.map(v => {
+      // в режиме правки: сохранённая группа, а для пропущенных — свежая догадка по первой позиции
+      const g = isEdit ? (editProf.posMap?.[v] || guessGroupFor(v) || "") : guessGroupFor(v);
+      return `<span class="pr"><b title="${esc(v)}">${esc(v)}</b><select data-pv="${esc(v)}">
+        <option value="">— пропустить —</option>` +
+        GROUPS.map(gr => `<option value="${gr.key}" ${gr.key === g ? "selected" : ""}>${gr.name}</option>`).join("") +
+        `</select></span>`;
+    }).join("");
+  };
+  const renderMap = () => {
+    const metaSet = new Set(["name","team","pos","minutes","age","height","nat"].map(metaVal).filter(Boolean));
+    const cols = H.filter(h => !metaSet.has(h));
+    const box = document.getElementById("wizMap");
+    box.innerHTML = cols.map(h => {
+      const numeric = isEdit ? true : looksNumeric(wiz.table, H.indexOf(h));
+      let def;
+      if (isEdit) {
+        const dst = editProf.columnMap?.[h];
+        def = !dst ? "" : (dst === h ? "__self" : dst);
+      } else {
+        // основная лига: неузнанные числовые колонки по умолчанию входят «как есть»;
+        // скаут-лига: неузнанные по умолчанию пропускаются (сравнивать их не с чем)
+        const guess = guessMetricFor(h, dict);
+        def = guess || (wiz.target === "main" && numeric ? "__self" : "");
+      }
+      const extraOpt = (def && def !== "__self" && !dict.includes(def))
+        ? `<option value="${esc(def)}" selected>${esc(def)}</option>` : "";
+      return `<div class="map-row"><span class="src" title="${esc(h)}">${esc(h)}${numeric ? "" : ' <span style="color:#8a94ab">(не число)</span>'}</span><span class="arr">→</span>
+        <select data-src="${esc(h)}">
+          <option value="" ${def === "" ? "selected" : ""}>— пропустить —</option>
+          <option value="__self" ${def === "__self" ? "selected" : ""}>как есть (${esc(h)})</option>${extraOpt}` +
+        dict.map(d => `<option value="${esc(d)}" ${d === def ? "selected" : ""}>${esc(d)}</option>`).join("") +
+        `</select></div>`;
+    }).join("");
+    makeSearchable(box);
+  };
+  host.querySelectorAll("select[data-meta]").forEach(s => s.onchange = () => { renderPos(); renderMap(); });
+  makeSearchable(host.querySelector(".wiz-grid"));
+  renderPos(); renderMap();
+
+  const closeWizard = () => {
+    document.getElementById("wizardHost").innerHTML = "";
+    wiz = null;
+    document.removeEventListener("keydown", escClose);
+  };
+  const escClose = e => { if (e.key === "Escape") closeWizard(); };
+  document.addEventListener("keydown", escClose);
+  document.getElementById("wizCancel").onclick = closeWizard;
+  document.getElementById("wizClose").onclick = closeWizard;
+  document.getElementById("wizImport").onclick = () => {
+    const err = document.getElementById("wizErr");
+    const meta = {};
+    for (const k of ["name","team","pos","minutes","age","height","nat"]) { const v = metaVal(k); if (v) meta[k] = v; }
+    if (!meta.name || !meta.pos || !meta.minutes) { err.textContent = "Укажите колонки «Игрок», «Позиция» и «Минуты»."; return; }
+    const unit = host.querySelector('input[name="wizUnit"]:checked').value;
+    const posMap = {};
+    host.querySelectorAll("#wizPos select[data-pv]").forEach(s => { posMap[s.dataset.pv] = s.value || null; });
+    const columnMap = {};
+    host.querySelectorAll('#wizMap select[data-src]').forEach(s => {
+      if (!s.value) return;
+      columnMap[s.dataset.src] = s.value === "__self" ? s.dataset.src : s.value;
+    });
+    if (!Object.keys(columnMap).length) { err.textContent = "Не выбрано ни одной метрики."; return; }
+    const pName = document.getElementById("wizProfileName").value.trim() || "Источник";
+    const profile = { name: pName, meta, unit, posMode: "map", posMap, columnMap };
+    const oldName = wiz.editProf?.name || null;
+    if (oldName && oldName !== pName && cfg.profiles[pName]) { err.textContent = "Профиль с таким названием уже существует."; return; }
+    cfg.profiles[pName] = profile;
+    if (oldName && oldName !== pName) delete cfg.profiles[oldName];
+    saveCfg();
+    const w = wiz;
+    closeWizard();
+    if (w.editProf) reapplyProfile(profile, oldName);
+    else applyImport(w.table, profile, w.fileName, w.target, w.text);
+  };
+}
+
+// после правки профиля пересобираем все лиги, загруженные с ним
+function reapplyProfile(profile, oldName) {
+  const names = [profile.name, oldName].filter(Boolean);
+  try {
+    const meta = JSON.parse(localStorage.getItem(LS_META) || "{}");
+    if (mainLeague && names.includes(meta.profileName)) {
+      const table = parseTable(localStorage.getItem(LS_CSV) || "");
+      const data = table && buildLeagueData(table, profile);
+      if (data) {
+        metricCols = data.metrics;
+        mainLeague.players = data.players;
+        mainLeague.players.forEach(p => p.league = mainLeague);
+        meta.profileName = profile.name;
+        localStorage.setItem(LS_META, JSON.stringify(meta));
+      }
+    }
+  } catch (e) {}
+  for (const lg of scoutLeagues) {
+    if (!names.includes(lg.profileName)) continue;
+    const table = parseTable(lg.text || "");
+    const data = table && buildLeagueData(table, profile);
+    if (data) {
+      lg.players = data.players;
+      lg.players.forEach(p => p.league = lg);
+      lg.metrics = data.metrics;
+      lg.profileName = profile.name;
+    }
+  }
+  saveScoutLeagues();
+  recomputeAll();
+  renderAll();
+}
+
+/* точки входа (используются дроп-зонами и window.app) */
+function loadMainText(text, fileName) { importFile(text, fileName, "main"); }
+function addScoutText(text, fileName) { importFile(text, fileName, "scout"); }
+
+function saveScoutLeagues() {
+  try {
+    localStorage.setItem(LS_SCOUT, JSON.stringify(scoutLeagues.map(lg =>
+      ({ id: lg.id, name: lg.name, coef: lg.coef, fileName: lg.fileName, text: lg.text, loaded: lg.loaded, profileName: lg.profileName || "__rustat" }))));
+  } catch (e) {
+    alert("Не удалось сохранить лиги в браузере (лимит хранилища ~5 МБ). Лиги останутся до перезагрузки страницы. Удалите лишнюю лигу или уменьшите число лиг.");
+  }
+}
+
+function restoreScoutLeagues() {
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem(LS_SCOUT) || "[]"); } catch (e) {}
+  scoutLeagues = [];
+  for (const s of arr) {
+    const table = parseTable(s.text || "");
+    const profile = profileByName(s.profileName);
+    if (!table || !profile) continue;
+    const data = buildLeagueData(table, profile);
+    if (!data) continue;
+    const lg = { ...s, players: data.players, metrics: data.metrics, percCache: {} };
+    lg.players.forEach(p => p.league = lg);
+    scoutLeagues.push(lg);
+  }
+}
+
+/* ================= РАСЧЁТЫ ================= */
+
+function recomputeLeague(lg) {
+  lg.percCache = {};
+  for (const g of GROUPS) {
+    const pool = lg.players.filter(p => p.group === g.key && p.minutes >= cfg.minMinutes);
+    const byMetric = {};
+    for (const m of metricCols) {
+      byMetric[m] = pool.map(p => p.stats[m]).filter(v => v !== null).sort((a, b) => a - b);
+    }
+    lg.percCache[g.key] = byMetric;
+  }
+}
+
+function recomputeAll() {
+  for (const lg of allLeagues()) recomputeLeague(lg);
+  // распределения индексов ролей в основной лиге
+  mainRoleDist = {};
+  if (!mainLeague) return;
+  for (const g of GROUPS) {
+    const roles = cfg.roles[g.key] || [];
+    const pool = mainLeague.players.filter(p => p.group === g.key && p.minutes >= cfg.minMinutes);
+    mainRoleDist[g.key] = roles.map(r =>
+      pool.map(p => roleIndex(p, r)).filter(v => v !== null).sort((a, b) => a - b));
+  }
+}
+
+function percentileOf(arr, v) {
+  if (!arr || arr.length < 2 || v === null) return null;
+  let lo = 0, hi = arr.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (arr[mid] < v) lo = mid + 1; else hi = mid; }
+  let lo2 = lo, hi2 = arr.length;
+  while (lo2 < hi2) { const mid = (lo2 + hi2) >> 1; if (arr[mid] <= v) lo2 = mid + 1; else hi2 = mid; }
+  const rank = (lo + lo2) / 2;
+  const perc = 100 * rank / (arr.length - 1);
+  return Math.round(perc > 100 ? 100 : perc);
+}
+
+function medianOf(arr) {
+  if (!arr || !arr.length) return null;
+  const n = arr.length;
+  return n % 2 ? arr[(n - 1) / 2] : (arr[n / 2 - 1] + arr[n / 2]) / 2;
+}
+
+// стилевой множитель: медиана осн. лиги / медиана лиги игрока
+// (по этой метрике, внутри группы позиций); убирает перекос стиля лиг
+function styleFactor(p, metric) {
+  if (!cfg.styleNorm) return 1;
+  const own = medianOf(p.league?.percCache?.[p.group]?.[metric]);
+  const main = medianOf(mainLeague?.percCache?.[p.group]?.[metric]);
+  if (own === null || main === null) return 1;
+  // защита: у разреженных метрик (голы головой, удаления...) медианы около нуля ненадёжны
+  if (own < 0.05 || main < 0.05) return 1;
+  let f = main / own;
+  if (f < 0.5) f = 0.5; else if (f > 2) f = 2;
+  return f;
+}
+
+// значение метрики, пересчитанное на уровень и стиль основной лиги:
+// сначала стилевая нормализация по медианам, затем коэффициент силы лиги
+// (обычные метрики умножаются, инвертированные — делятся), процентные ограничены 100
+function adjStat(p, metric) {
+  let v = p.stats[metric];
+  if (v === null) return null;
+  if (p.league?.isMain) return v;
+  const coef = p.league?.coef ?? 1;
+  v = v * styleFactor(p, metric);
+  v = INVERTED.has(metric) ? v / coef : v * coef;
+  if (metric.includes("%") && v > 100) v = 100;
+  return v;
+}
+
+// mode: undefined/'own' — перцентиль сырого значения в своей лиге;
+// 'adj' — перцентиль скорректированного значения среди игроков ОСНОВНОЙ лиги
+function metricPerc(p, metric, mode) {
+  let arr, val;
+  if (mode === "adj" && !p.league?.isMain) {
+    arr = mainLeague?.percCache?.[p.group]?.[metric];
+    val = adjStat(p, metric);
+  } else {
+    arr = p.league?.percCache?.[p.group]?.[metric];
+    val = p.stats[metric];
+  }
+  let perc = percentileOf(arr, val);
+  if (perc === null) return null;
+  if (INVERTED.has(metric)) perc = 100 - perc;
+  return perc;
+}
+
+function compositeByName(name) { return cfg.composites.find(c => c.name === name); }
+
+// какие метрики реально есть в данных лиги
+function leagueMetricSet(lg) { return new Set(lg?.metrics || metricCols); }
+
+// словарь платформы: метрики основной лиги, а если она не загружена —
+// всё, на что ссылаются разделы, роли и составные метрики (базовый словарь)
+function dictionaryNames() {
+  if (metricCols.length) return metricCols;
+  const s = new Set();
+  METRIC_CATS.forEach(([, ms]) => ms.forEach(m => s.add(m)));
+  INVERTED.forEach(m => s.add(m));
+  cfg.composites.forEach(c => c.parts.forEach(([m]) => s.add(m)));
+  for (const g in cfg.roles) cfg.roles[g].forEach(r => r.parts.forEach(([m]) => { if (!compositeByName(m)) s.add(m); }));
+  return [...s];
+}
+// сырые метрики, на которые опирается роль (включая внутренности составных)
+function roleRawMetrics(role) {
+  const out = new Set();
+  for (const [name] of role.parts) {
+    const comp = compositeByName(name);
+    if (comp) comp.parts.forEach(([m]) => out.add(m));
+    else out.add(name);
+  }
+  return [...out];
+}
+// сколько метрик словаря основной лиги есть в этой лиге
+function leagueCoverage(lg) {
+  const have = (lg.metrics || metricCols).filter(m => metricCols.includes(m)).length;
+  return { have, total: metricCols.length };
+}
+
+function anyPerc(p, name, mode) {
+  const comp = compositeByName(name);
+  if (comp) {
+    let sum = 0, wsum = 0;
+    for (const [m, w] of comp.parts) {
+      const perc = metricPerc(p, m, mode);
+      if (perc !== null && w > 0) { sum += perc * w; wsum += w; }
+    }
+    return wsum > 0 ? Math.round(sum / wsum) : null;
+  }
+  return metricPerc(p, name, mode);
+}
+
+function roleIndex(p, role, mode) {
+  let sum = 0, wsum = 0;
+  for (const [name, w] of role.parts) {
+    const perc = anyPerc(p, name, mode);
+    if (perc !== null && w > 0) { sum += perc * w; wsum += w; }
+  }
+  return wsum > 0 ? Math.round(sum / wsum) : null;
+}
+
+// индекс роли «в масштабе основной лиги»
+function adjIndex(p, role) {
+  if (p.league?.isMain) return roleIndex(p, role);
+  return roleIndex(p, role, "adj");
+}
+
+// куда встал бы adjVal среди индексов роли ri основной лиги (группа g)
+function mainRank(g, ri, adjVal) {
+  const arr = mainRoleDist[g]?.[ri];
+  if (!arr || !arr.length || adjVal === null) return null;
+  let below = 0;
+  for (const v of arr) { if (v < adjVal) below++; else break; }
+  const topPct = Math.max(1, Math.round(100 * (arr.length - below) / arr.length));
+  return { place: Math.max(1, arr.length - below), n: arr.length, topPct };
+}
+
+// рекомендация для игрока скаутинговой лиги
+function recoForPlayer(p) {
+  const res = { tier: null, prospect: false, best: null };
+  if (!p.group || p.minutes < cfg.minMinutes || !mainLeague) return res;
+  const roles = cfg.roles[p.group] || [];
+  roles.forEach((r, ri) => {
+    const adj = adjIndex(p, r);
+    const rank = mainRank(p.group, ri, adj);
+    if (adj === null || !rank) return;
+    if (!res.best || adj > res.best.adj) res.best = { role: r.name, ri, adj, rank };
+    if (rank.topPct <= cfg.reco.star) res.tier = "star";
+    else if (rank.topPct <= cfg.reco.ready && res.tier !== "star") res.tier = "ready";
+  });
+  if (p.age !== null && p.age <= cfg.reco.age) res.prospect = true;
+  return res;
+}
+
+function recoBadges(reco) {
+  let h = "";
+  if (reco.tier === "star") h += `<span class="reco-badge reco-star">⭐ Звезда</span>`;
+  else if (reco.tier === "ready") h += `<span class="reco-badge reco-ready">🟢 Усиление</span>`;
+  if (reco.prospect) h += `<span class="reco-badge reco-prosp">🔵 Перспектива</span>`;
+  return h || `<span class="muted">—</span>`;
+}
+
+// похожие игроки основной лиги (по профилю перцентилей своей лиги)
+function similarMainPlayers(p, topN) {
+  if (!mainLeague || !p.group) return [];
+  const cands = mainLeague.players.filter(c =>
+    c.group === p.group && c.minutes >= cfg.minMinutes && !(c.name === p.name && c.team === p.team));
+  const myMode = p.league?.isMain ? undefined : "adj";
+  const myPercs = {};
+  for (const m of metricCols) myPercs[m] = metricPerc(p, m, myMode);
+  const scored = [];
+  for (const c of cands) {
+    let sum = 0, n = 0;
+    for (const m of metricCols) {
+      const a = myPercs[m], b = metricPerc(c, m);
+      if (a !== null && b !== null) { sum += Math.abs(a - b); n++; }
+    }
+    if (n > 20) scored.push({ p: c, sim: Math.round(100 - sum / n) });
+  }
+  scored.sort((a, b) => b.sim - a.sim);
+  return scored.slice(0, topN || 5);
+}
+
+/* ================= ЦВЕТА / ФОРМАТ ================= */
+
+function percColor(perc) {
+  if (perc === null) return "#333b63";
+  return `hsl(${Math.round(perc * 1.2)}, 72%, 47%)`;
+}
+function percTextColor(perc) {
+  if (perc === null) return "var(--muted)";
+  return `hsl(${Math.round(perc * 1.2)}, 88%, 65%)`;
+}
+function fmt(v) {
+  if (v === null || v === undefined) return "—";
+  return (Math.round(v * 100) / 100).toLocaleString("ru");
+}
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"); }
+
+/* ---------- лица, эмблемы, флаги ---------- */
+// страна (как пишет РуСтат) -> код флага (flagcdn.com)
+const COUNTRY_ISO = {
+  "испания":"es","франция":"fr","аргентина":"ar","италия":"it","уругвай":"uy","бразилия":"br",
+  "португалия":"pt","англия":"gb-eng","шотландия":"gb-sct","уэльс":"gb-wls","северная ирландия":"gb-nir",
+  "нигерия":"ng","марокко":"ma","нидерланды":"nl","камерун":"cm","бельгия":"be","сша":"us",
+  "швейцария":"ch","гана":"gh","др конго":"cd","конго":"cg","колумбия":"co","сенегал":"sn",
+  "доминиканская республика":"do","швеция":"se","хорватия":"hr","венесуэла":"ve","чили":"cl",
+  "кот-д'ивуар":"ci","австрия":"at","германия":"de","израиль":"il","польша":"pl","алжир":"dz",
+  "япония":"jp","канада":"ca","кабо-верде":"cv","гваделупа":"gp","экваториальная гвинея":"gq",
+  "мексика":"mx","албания":"al","гвинея":"gn","норвегия":"no","украина":"ua","исландия":"is",
+  "словакия":"sk","бенин":"bj","ангола":"ao","того":"tg","румыния":"ro","грузия":"ge","кения":"ke",
+  "финляндия":"fi","мавритания":"mr","россия":"ru","ямайка":"jm","чешская республика":"cz","чехия":"cz",
+  "дания":"dk","мали":"ml","египет":"eg","нигер":"ne","гвинея-бисау":"gw","турция":"tr",
+  "сирийская арабская республика":"sy","сирия":"sy","куба":"cu","литва":"lt","северная македония":"mk",
+  "гондурас":"hn","косово":"xk","центрально-африканская республика":"cf","суринам":"sr","бурунди":"bi",
+  "беларусь":"by","белоруссия":"by","казахстан":"kz","армения":"am","азербайджан":"az","узбекистан":"uz",
+  "таджикистан":"tj","киргизия":"kg","молдова":"md","латвия":"lv","эстония":"ee","сербия":"rs",
+  "черногория":"me","босния и герцеговина":"ba","словения":"si","болгария":"bg","греция":"gr",
+  "венгрия":"hu","ирландия":"ie","парагвай":"py","перу":"pe","эквадор":"ec","боливия":"bo",
+  "коста-рика":"cr","панама":"pa","тунис":"tn","буркина-фасо":"bf","замбия":"zm","зимбабве":"zw",
+  "юар":"za","южная корея":"kr","республика корея":"kr","корея":"kr","китай":"cn","австралия":"au",
+  "новая зеландия":"nz","иран":"ir","ирак":"iq","саудовская аравия":"sa","катар":"qa",
+  "оаэ":"ae","объединённые арабские эмираты":"ae","объединенные арабские эмираты":"ae","гамбия":"gm",
+  "габон":"ga","мозамбик":"mz","мадагаскар":"mg","танзания":"tz","уганда":"ug","эфиопия":"et",
+  "ливия":"ly","иордания":"jo","ливан":"lb","кипр":"cy","мальта":"mt","люксембург":"lu",
+  "лихтенштейн":"li","андорра":"ad","фарерские острова":"fo","тринидад и тобаго":"tt","гаити":"ht",
+  "мартиника":"mq","кюрасао":"cw","сальвадор":"sv","гватемала":"gt","никарагуа":"ni",
+  "сьерра-леоне":"sl","либерия":"lr","руанда":"rw","малави":"mw","ботсвана":"bw","намибия":"na",
+  "судан":"sd","южный судан":"ss","индонезия":"id","таиланд":"th","вьетнам":"vn","индия":"in",
+};
+// английские названия (выгрузки Wyscout и т.п.)
+Object.assign(COUNTRY_ISO, {
+  "spain":"es","france":"fr","argentina":"ar","italy":"it","uruguay":"uy","brazil":"br","portugal":"pt",
+  "england":"gb-eng","scotland":"gb-sct","wales":"gb-wls","northern ireland":"gb-nir","ireland":"ie",
+  "nigeria":"ng","morocco":"ma","netherlands":"nl","cameroon":"cm","belgium":"be","usa":"us","united states":"us",
+  "switzerland":"ch","ghana":"gh","dr congo":"cd","congo dr":"cd","congo":"cg","colombia":"co","senegal":"sn",
+  "dominican republic":"do","sweden":"se","croatia":"hr","venezuela":"ve","chile":"cl",
+  "cote d'ivoire":"ci","côte d'ivoire":"ci","ivory coast":"ci","austria":"at","germany":"de","israel":"il",
+  "poland":"pl","algeria":"dz","japan":"jp","canada":"ca","cape verde":"cv","guadeloupe":"gp",
+  "equatorial guinea":"gq","mexico":"mx","albania":"al","guinea":"gn","norway":"no","ukraine":"ua",
+  "iceland":"is","slovakia":"sk","benin":"bj","angola":"ao","togo":"tg","romania":"ro","georgia":"ge",
+  "kenya":"ke","finland":"fi","mauritania":"mr","russia":"ru","jamaica":"jm","czech republic":"cz","czechia":"cz",
+  "denmark":"dk","mali":"ml","egypt":"eg","niger":"ne","guinea-bissau":"gw","turkey":"tr","türkiye":"tr",
+  "syria":"sy","cuba":"cu","lithuania":"lt","north macedonia":"mk","honduras":"hn","kosovo":"xk",
+  "central african republic":"cf","suriname":"sr","burundi":"bi","belarus":"by","kazakhstan":"kz",
+  "armenia":"am","azerbaijan":"az","uzbekistan":"uz","tajikistan":"tj","kyrgyzstan":"kg","moldova":"md",
+  "latvia":"lv","estonia":"ee","serbia":"rs","montenegro":"me","bosnia and herzegovina":"ba","bosnia":"ba",
+  "slovenia":"si","bulgaria":"bg","greece":"gr","hungary":"hu","paraguay":"py","peru":"pe","ecuador":"ec",
+  "bolivia":"bo","costa rica":"cr","panama":"pa","tunisia":"tn","burkina faso":"bf","zambia":"zm",
+  "zimbabwe":"zw","south africa":"za","south korea":"kr","korea republic":"kr","china":"cn","china pr":"cn",
+  "australia":"au","new zealand":"nz","iran":"ir","iraq":"iq","saudi arabia":"sa","qatar":"qa",
+  "united arab emirates":"ae","uae":"ae","gambia":"gm","gabon":"ga","mozambique":"mz","madagascar":"mg",
+  "tanzania":"tz","uganda":"ug","ethiopia":"et","libya":"ly","jordan":"jo","lebanon":"lb","cyprus":"cy",
+  "malta":"mt","luxembourg":"lu","liechtenstein":"li","andorra":"ad","faroe islands":"fo",
+  "trinidad and tobago":"tt","haiti":"ht","martinique":"mq","curacao":"cw","curaçao":"cw","el salvador":"sv",
+  "guatemala":"gt","nicaragua":"ni","sierra leone":"sl","liberia":"lr","rwanda":"rw","malawi":"mw",
+  "botswana":"bw","namibia":"na","sudan":"sd","south sudan":"ss","indonesia":"id","thailand":"th",
+  "vietnam":"vn","india":"in",
+});
+// флаги по колонке «Гражданство» (до трёх, через запятую)
+function flagsHtml(nat, size) {
+  if (!nat || nat === "-") return "";
+  return String(nat).split(",").map(c => c.trim()).filter(Boolean).slice(0, 3).map(c => {
+    const iso = COUNTRY_ISO[c.toLowerCase()];
+    if (!iso) return "";
+    return `<img class="flag" src="https://flagcdn.com/w40/${iso}.png" width="${size || 18}" title="${esc(c)}" alt="${esc(c)}" loading="lazy" onerror="this.remove()">`;
+  }).join("");
+}
+
+/* ================= РЕНДЕР: ОБЩЕЕ ================= */
+
+function renderAll() {
+  renderHeaderInfo();
+  renderFilters();
+  renderPlayersTable();
+  renderScout();
+  renderShortlist();
+  renderRolesConfig();
+  renderDataInfo();
+  renderProfiles();
+  if (selectedPlayer) renderCard(selectedPlayer);
+}
+
+/* ---- список профилей источников на вкладке «Данные» ---- */
+function renderProfiles() {
+  const box = document.getElementById("profilesList");
+  if (!box) return;
+  const rows = [`<div class="league-row"><b>РуСтат</b><span class="lmeta">встроенный профиль — файлы РуСтат распознаются автоматически</span></div>`];
+  for (const [name, pr] of Object.entries(cfg.profiles)) {
+    const nMetrics = Object.keys(pr.columnMap || {}).length;
+    rows.push(`<div class="league-row" data-p="${esc(name)}">
+      <b>${esc(name)}</b>
+      <span class="lmeta">метрик: ${nMetrics} · единицы: ${pr.unit === "total" ? "суммарные → за 90 мин" : "за 90 минут"} · позиций в карте: ${Object.keys(pr.posMap || {}).length}</span>
+      <button class="act sec pedit" style="margin-left:auto">изменить</button>
+      <button class="act sec pren">переименовать</button>
+      <button class="act danger pdel">удалить</button>
+    </div>`);
+  }
+  box.innerHTML = rows.join("");
+  box.querySelectorAll(".league-row[data-p]").forEach(row => {
+    const name = row.dataset.p;
+    row.querySelector(".pedit").onclick = () => openWizard(null, name, "edit", null, cfg.profiles[name]);
+    row.querySelector(".pdel").onclick = () => {
+      if (!confirm(`Удалить профиль «${name}»? Лиги, загруженные с ним, после перезагрузки страницы не восстановятся, а следующий файл этого источника снова откроет мастер импорта.`)) return;
+      delete cfg.profiles[name];
+      saveCfg(); renderProfiles();
+    };
+    row.querySelector(".pren").onclick = () => {
+      const nn = (prompt("Новое название профиля:", name) || "").trim();
+      if (!nn || nn === name) return;
+      if (cfg.profiles[nn]) { alert("Профиль с таким названием уже существует."); return; }
+      cfg.profiles[nn] = { ...cfg.profiles[name], name: nn };
+      delete cfg.profiles[name];
+      scoutLeagues.forEach(lg => { if (lg.profileName === name) lg.profileName = nn; });
+      saveScoutLeagues();
+      try {
+        const m = JSON.parse(localStorage.getItem(LS_META) || "{}");
+        if (m.profileName === name) { m.profileName = nn; localStorage.setItem(LS_META, JSON.stringify(m)); }
+      } catch (e) {}
+      saveCfg(); renderProfiles();
+    };
+  });
+}
+
+function renderHeaderInfo() {
+  const el = document.getElementById("headerInfo");
+  if (!mainLeague) { el.textContent = "Данные не загружены"; return; }
+  const eligible = mainLeague.players.filter(p => p.minutes >= cfg.minMinutes).length;
+  const sc = scoutLeagues.length ? ` · скаут-лиг: ${scoutLeagues.length}` : "";
+  el.textContent = `${mainLeague.fileName} · игроков: ${mainLeague.players.length} (в рейтинге: ${eligible})${sc} · порог: ${cfg.minMinutes} мин`;
+}
+
+/* изменение ширины колонок перетаскиванием за правый край заголовка (как в Excel);
+   ширины сохраняются в настройках, двойной клик по ручке — сброс колонки */
+function makeColumnsResizable(tableEl, storeKey, keyOf) {
+  if (!tableEl) return;
+  const ths = [...tableEl.querySelectorAll("thead th")];
+  cfg.colWidths = cfg.colWidths || {};
+  const store = cfg.colWidths[storeKey] = cfg.colWidths[storeKey] || {};
+  if (ths.some((th, i) => store[keyOf(th, i)])) {
+    tableEl.classList.add("fixed");
+    ths.forEach((th, i) => { const w = store[keyOf(th, i)]; if (w) th.style.width = w + "px"; });
+  }
+  ths.forEach((th, i) => {
+    const grip = document.createElement("span");
+    grip.className = "col-grip";
+    th.appendChild(grip);
+    grip.onclick = e => e.stopPropagation();
+    grip.ondblclick = e => {
+      e.stopPropagation();
+      delete store[keyOf(th, i)];
+      th.style.width = "";
+      if (!ths.some((t, j) => store[keyOf(t, j)])) tableEl.classList.remove("fixed");
+      saveCfg();
+    };
+    grip.onpointerdown = e => {
+      if (e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation();
+      grip.classList.add("active");
+      const startX = e.clientX;
+      const startW = th.getBoundingClientRect().width;
+      if (!tableEl.classList.contains("fixed")) {
+        // фиксируем текущие ширины всех колонок, чтобы таблица не «прыгнула»
+        const widths = ths.map(t => t.getBoundingClientRect().width);
+        tableEl.classList.add("fixed");
+        ths.forEach((t, j) => { t.style.width = widths[j] + "px"; store[keyOf(t, j)] = Math.round(widths[j]); });
+      }
+      const move = ev => {
+        const w = Math.max(40, startW + ev.clientX - startX);
+        th.style.width = w + "px";
+        store[keyOf(th, i)] = Math.round(w);
+      };
+      const up = () => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        grip.classList.remove("active");
+        saveCfg();
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+    };
+  });
+}
+
+/* ================= РЕНДЕР: СПИСОК ИГРОКОВ (осн. лига) ================= */
+
+function renderFilters() {
+  const gSel = document.getElementById("fGroup");
+  const cur = gSel.value;
+  gSel.innerHTML = GROUPS.map(g => `<option value="${g.key}">${g.name}</option>`).join("");
+  if (cur) gSel.value = cur;
+  const tSel = document.getElementById("fTeam");
+  const curT = tSel.value;
+  const teams = mainLeague ? [...new Set(mainLeague.players.map(p => p.team))].sort() : [];
+  tSel.innerHTML = `<option value="">Все команды</option>` + teams.map(t => `<option>${esc(t)}</option>`).join("");
+  if (curT) tSel.value = curT;
+
+  const sg = document.getElementById("sGroup");
+  const curSg = sg.value;
+  sg.innerHTML = GROUPS.map(g => `<option value="${g.key}">${g.name}</option>`).join("");
+  if (curSg) sg.value = curSg;
+  const sl = document.getElementById("sLeague");
+  const curSl = sl.value;
+  sl.innerHTML = `<option value="">Все лиги</option>` + scoutLeagues.map(lg => `<option value="${lg.id}">${esc(lg.name)}</option>`).join("");
+  if (curSl) sl.value = curSl;
+}
+
+function renderPlayersTable() {
+  const emptyNote = document.getElementById("playersEmpty");
+  const head = document.getElementById("plHead");
+  const body = document.getElementById("plBody");
+  if (!mainLeague) { emptyNote.style.display = "block"; head.innerHTML = ""; body.innerHTML = ""; document.getElementById("fCount").textContent = ""; return; }
+  emptyNote.style.display = "none";
+
+  const group = document.getElementById("fGroup").value || GROUPS[0].key;
+  const search = (document.getElementById("fSearch").value || "").toLowerCase();
+  const team = document.getElementById("fTeam").value;
+  const roles = cfg.roles[group] || [];
+
+  let list = mainLeague.players.filter(p => p.group === group);
+  if (team) list = list.filter(p => p.team === team);
+  if (search) list = list.filter(p => p.name.toLowerCase().includes(search) || p.team.toLowerCase().includes(search));
+
+  const rows = list.map(p => {
+    const eligible = p.minutes >= cfg.minMinutes;
+    const idxs = roles.map(r => eligible ? roleIndex(p, r) : null);
+    return { p, idxs, eligible };
+  });
+
+  const s = sortState;
+  rows.sort((a, b) => {
+    let va, vb;
+    if (s.col.startsWith("__role")) { const i = +s.col.slice(6); va = a.idxs[i] ?? -1; vb = b.idxs[i] ?? -1; }
+    else if (s.col === "name" || s.col === "team" || s.col === "pos") { return s.dir * String(a.p[s.col]).localeCompare(String(b.p[s.col]), "ru"); }
+    else { va = a.p[s.col] ?? -1; vb = b.p[s.col] ?? -1; }
+    return s.dir * (va - vb);
+  });
+
+  const cols = [
+    ["name","Игрок"],["team","Команда"],["age","Возраст"],["minutes","Минуты"],["pos","Позиция"],
+    ...roles.map((r, i) => ["__role" + i, r.name]),
+  ];
+  head.innerHTML = "<tr>" + cols.map(([k, t]) =>
+    `<th data-col="${k}">${esc(t)}${s.col === k ? (s.dir < 0 ? " ▼" : " ▲") : ""}</th>`).join("") + "</tr>";
+  head.querySelectorAll("th").forEach(th => th.onclick = () => {
+    const c = th.dataset.col;
+    if (sortState.col === c) sortState.dir *= -1;
+    else { sortState.col = c; sortState.dir = (c === "name" || c === "team" || c === "pos") ? 1 : -1; }
+    renderPlayersTable();
+  });
+
+  body.innerHTML = rows.map(({ p, idxs, eligible }, ri) => {
+    const cls = eligible ? "" : ' style="opacity:.38"';
+    const cells = idxs.map(v =>
+      `<td class="idx-cell"><span style="color:${percTextColor(v)}">${v === null ? "—" : v}</span></td>`).join("");
+    return `<tr data-i="${ri}"${cls}><td><span class="pcell"><b>${esc(p.name)}</b>${flagsHtml(p.nat, 15)}</span></td>` +
+      `<td class="muted">${esc(p.team)}</td>` +
+      `<td>${fmt(p.age)}</td><td>${fmt(p.minutes)}</td><td class="muted">${esc(p.pos)}</td>${cells}</tr>`;
+  }).join("");
+
+  document.getElementById("fCount").textContent = `${rows.length} игроков`;
+
+  body.querySelectorAll("tr").forEach(tr => tr.onclick = () => {
+    openCard(rows[+tr.dataset.i].p);
+  });
+  makeColumnsResizable(head.closest("table"), "players", th => th.dataset.col);
+}
+
+/* ================= РЕНДЕР: СКАУТИНГ ================= */
+
+function renderScout() {
+  const noMain = document.getElementById("scoutNoMain");
+  const bodyEl = document.getElementById("scoutBody");
+  if (!mainLeague) { noMain.style.display = "block"; bodyEl.style.display = "none"; return; }
+  noMain.style.display = "none";
+  bodyEl.style.display = "block";
+
+  // список лиг
+  const ll = document.getElementById("leaguesList");
+  ll.innerHTML = scoutLeagues.length ? scoutLeagues.map(lg => {
+    const eligible = lg.players.filter(p => p.minutes >= cfg.minMinutes).length;
+    const cov = leagueCoverage(lg);
+    const covHtml = cov.have < cov.total
+      ? ` · <span style="color:#ffb84d" title="Метрик словаря основной лиги, доступных в этой лиге. Недостающие исключаются из ролей, веса перераспределяются.">метрик: ${cov.have} из ${cov.total} ⚠</span>`
+      : ` · метрик: ${cov.have} из ${cov.total}`;
+    return `<div class="league-row" data-id="${lg.id}">
+      <input type="text" class="lname" value="${esc(lg.name)}" title="Название лиги">
+      <label>Коэффициент: <input type="number" class="lcoef" value="${lg.coef}" step="0.05" min="0.1" max="1.5"></label>
+      <span class="lmeta">${esc(lg.fileName)} · игроков: ${lg.players.length} (в рейтинге: ${eligible})${covHtml}</span>
+      <button class="act danger ldel" style="margin-left:auto">удалить</button>
+    </div>`;
+  }).join("") : `<p class="hint">Пока не загружено ни одной лиги для скаутинга.</p>`;
+
+  ll.querySelectorAll(".league-row").forEach(row => {
+    const lg = scoutLeagues.find(l => l.id === row.dataset.id);
+    row.querySelector(".lname").onchange = e => { lg.name = e.target.value; saveScoutLeagues(); renderFilters(); renderScoutTable(); };
+    row.querySelector(".lcoef").onchange = e => {
+      const v = parseFloat(e.target.value);
+      lg.coef = (isNaN(v) || v <= 0) ? 1 : v;
+      e.target.value = lg.coef;
+      saveScoutLeagues(); renderScoutTable(); renderShortlist();
+      if (selectedPlayer) renderCard(selectedPlayer);
+    };
+    row.querySelector(".ldel").onclick = () => {
+      if (confirm(`Удалить лигу «${lg.name}»?`)) {
+        scoutLeagues = scoutLeagues.filter(l => l.id !== lg.id);
+        saveScoutLeagues(); renderFilters(); renderScout(); renderShortlist(); renderHeaderInfo();
+      }
+    };
+  });
+
+  // настройки рекомендаций
+  document.getElementById("recoStar").value = cfg.reco.star;
+  document.getElementById("recoReady").value = cfg.reco.ready;
+  document.getElementById("recoAge").value = cfg.reco.age;
+  document.getElementById("styleNormChk").checked = !!cfg.styleNorm;
+
+  renderColCfg();
+  renderScoutTable();
+}
+
+/* панель «Столбцы таблицы»: видимость (галочки), порядок (перетаскивание), наборы */
+function renderColCfg() {
+  const box = document.getElementById("colChips");
+  if (!box) return;
+  const hidden = cfg.scoutCols.hidden;
+  box.innerHTML = scoutColOrder().map(k => `
+    <span class="col-chip" draggable="true" data-k="${esc(k)}">
+      <input type="checkbox" ${hidden.includes(k) ? "" : "checked"}>${esc(colLabel(k))}
+    </span>`).join("");
+  box.querySelectorAll(".col-chip").forEach(chip => {
+    const k = chip.dataset.k;
+    chip.querySelector("input").onchange = e => {
+      cfg.scoutCols.hidden = cfg.scoutCols.hidden.filter(x => x !== k);
+      if (!e.target.checked) cfg.scoutCols.hidden.push(k);
+      saveCfg(); renderScoutTable();
+    };
+    chip.ondragstart = e => { e.dataTransfer.setData("text/plain", k); chip.classList.add("dragging"); };
+    chip.ondragend = () => chip.classList.remove("dragging");
+    chip.ondragover = e => e.preventDefault();
+    chip.ondrop = e => {
+      e.preventDefault();
+      const from = e.dataTransfer.getData("text/plain");
+      if (!from || from === k) return;
+      const order = scoutColOrder().filter(x => x !== from);
+      order.splice(order.indexOf(k), 0, from);
+      cfg.scoutCols.order = order;
+      saveCfg(); renderColCfg(); renderScoutTable();
+    };
+  });
+  const sel = document.getElementById("presetSel");
+  const cur = sel.value;
+  const names = Object.keys(cfg.scoutColPresets);
+  sel.innerHTML = names.length
+    ? names.map(n => `<option>${esc(n)}</option>`).join("")
+    : `<option value="">— нет наборов —</option>`;
+  if (cur && names.includes(cur)) sel.value = cur;
+}
+
+function renderScoutTable() {
+  const head = document.getElementById("scHead");
+  const body = document.getElementById("scBody");
+  if (!mainLeague) return;
+  const group = document.getElementById("sGroup").value || GROUPS[0].key;
+  const search = (document.getElementById("sSearch").value || "").toLowerCase();
+  const leagueId = document.getElementById("sLeague").value;
+  const recoFilter = document.getElementById("sReco").value;
+  const roles = cfg.roles[group] || [];
+
+  let list = [];
+  for (const lg of scoutLeagues) {
+    if (leagueId && lg.id !== leagueId) continue;
+    list.push(...lg.players.filter(p => p.group === group));
+  }
+  if (search) list = list.filter(p => p.name.toLowerCase().includes(search) || p.team.toLowerCase().includes(search));
+
+  const visCols = scoutColOrder().filter(k => !cfg.scoutCols.hidden.includes(k));
+  const visCats = visCols.filter(k => k.startsWith("cat:"));
+
+  let rows = list.map(p => {
+    const eligible = p.minutes >= cfg.minMinutes;
+    const idxs = visCols.includes("roles") ? roles.map(r => eligible ? adjIndex(p, r) : null) : [];
+    const reco = eligible ? recoForPlayer(p) : { tier: null, prospect: false, best: null };
+    const cats = {};
+    for (const ck of visCats) cats[ck] = eligible ? catAvgFor(p, ck.slice(4)) : null;
+    return { p, idxs, reco, cats, eligible, best: reco.best ? reco.best.adj : -1 };
+  });
+
+  if (recoFilter === "any") rows = rows.filter(r => r.reco.tier || r.reco.prospect);
+  else if (recoFilter === "star") rows = rows.filter(r => r.reco.tier === "star");
+  else if (recoFilter === "ready") rows = rows.filter(r => r.reco.tier === "ready" || r.reco.tier === "star");
+  else if (recoFilter === "prosp") rows = rows.filter(r => r.reco.prospect);
+
+  const s = scSortState;
+  rows.sort((a, b) => {
+    let va, vb;
+    if (s.col === "__best") { va = a.best; vb = b.best; }
+    else if (s.col.startsWith("__role")) { const i = +s.col.slice(6); va = a.idxs[i] ?? -1; vb = b.idxs[i] ?? -1; }
+    else if (s.col.startsWith("cat:")) { va = a.cats[s.col] ?? -1; vb = b.cats[s.col] ?? -1; }
+    else if (s.col === "name" || s.col === "team" || s.col === "pos") { return s.dir * String(a.p[s.col]).localeCompare(String(b.p[s.col]), "ru"); }
+    else if (s.col === "league") { return s.dir * a.p.league.name.localeCompare(b.p.league.name, "ru"); }
+    else { va = a.p[s.col] ?? -1; vb = b.p[s.col] ?? -1; }
+    return s.dir * (va - vb);
+  });
+
+  const cols = [["name", "Игрок"]];
+  for (const k of visCols) {
+    if (k === "roles") roles.forEach((r, i) => cols.push(["__role" + i, r.name]));
+    else if (k === "best") cols.push(["__best", "Место в осн. лиге"]);
+    else cols.push([k, colLabel(k)]);
+  }
+  head.innerHTML = "<tr>" + cols.map(([k, t]) =>
+    `<th data-col="${k}">${esc(t)}${s.col === k ? (s.dir < 0 ? " ▼" : " ▲") : ""}</th>`).join("") + "</tr>";
+  head.querySelectorAll("th").forEach(th => th.onclick = () => {
+    const c = th.dataset.col;
+    if (c === "reco") return;
+    if (scSortState.col === c) scSortState.dir *= -1;
+    else { scSortState.col = c; scSortState.dir = (c === "name" || c === "team" || c === "pos" || c === "league") ? 1 : -1; }
+    renderScoutTable();
+  });
+
+  const idxCell = v => `<td class="idx-cell"><span style="color:${percTextColor(v)}">${v === null || v === undefined ? "—" : v}</span></td>`;
+  body.innerHTML = rows.map((r, ri) => {
+    const p = r.p;
+    const cls = r.eligible ? "" : ' style="opacity:.38"';
+    const tds = cols.map(([k]) => {
+      if (k === "name") return `<td><span class="pcell"><b>${esc(p.name)}</b>${flagsHtml(p.nat, 14)}</span></td>`;
+      if (k === "league") return `<td class="muted lg-cell" title="${esc(p.league.name)}">${esc(p.league.name)}</td>`;
+      if (k === "team") return `<td class="muted">${esc(p.team)}</td>`;
+      if (k === "age") return `<td>${fmt(p.age)}</td>`;
+      if (k === "minutes") return `<td>${fmt(p.minutes)}</td>`;
+      if (k === "pos") return `<td class="muted">${esc(p.pos)}</td>`;
+      if (k === "reco") return `<td>${recoBadges(r.reco)}</td>`;
+      if (k.startsWith("__role")) return idxCell(r.idxs[+k.slice(6)]);
+      if (k.startsWith("cat:")) return idxCell(r.cats[k]);
+      if (k === "__best") {
+        return `<td>` + (r.reco.best
+          ? `<span style="color:${percTextColor(r.reco.best.adj)}">${esc(r.reco.best.role)}: топ-${r.reco.best.rank.topPct}% (№${r.reco.best.rank.place} из ${r.reco.best.rank.n})</span>`
+          : `<span class="muted">—</span>`) + `</td>`;
+      }
+      return `<td></td>`;
+    }).join("");
+    return `<tr data-i="${ri}"${cls}>${tds}</tr>`;
+  }).join("");
+
+  document.getElementById("sCount").textContent = `${rows.length} игроков`;
+
+  body.querySelectorAll("tr").forEach(tr => tr.onclick = () => {
+    openCard(rows[+tr.dataset.i].p);
+  });
+  makeColumnsResizable(head.closest("table"), "scout", th => th.dataset.col);
+}
+
+/* ================= РЕНДЕР: ШОРТ-ЛИСТ ================= */
+
+function renderShortlist() {
+  const el = document.getElementById("shortContent");
+  if (!shortlist.length) {
+    el.innerHTML = `<p class="empty-note">Шорт-лист пуст. Добавляйте игроков кнопкой ☆ в карточке игрока.</p>`;
+    return;
+  }
+  const items = shortlist.map(s => ({ s, p: findPlayerByKey(s.name + "|" + s.team, s.lg) }));
+  el.innerHTML = `<div class="table-wrap"><table class="players">
+    <thead><tr><th>Игрок</th><th>Лига</th><th>Команда</th><th>Возраст</th><th>Минуты</th><th>Позиция</th><th>Рекомендация</th><th>Лучшая роль</th><th></th></tr></thead>
+    <tbody>` + items.map(({ s, p }, i) => {
+      if (!p) return `<tr data-i="${i}"><td><b>${esc(s.name)}</b></td><td colspan="7" class="muted">${esc(s.team)} — лига не загружена</td>
+        <td><button class="act danger shdel" data-i="${i}">✕</button></td></tr>`;
+      const isMain = p.league.isMain;
+      const reco = isMain ? null : recoForPlayer(p);
+      const roles = cfg.roles[p.group] || [];
+      let best = null;
+      roles.forEach(r => {
+        const v = isMain ? roleIndex(p, r) : adjIndex(p, r);
+        if (v !== null && (!best || v > best.v)) best = { name: r.name, v };
+      });
+      return `<tr data-i="${i}"><td><span class="pcell"><b>${esc(p.name)}</b>${flagsHtml(p.nat, 14)}</span></td><td class="muted lg-cell" title="${esc(p.league.name)}">${esc(p.league.name)}</td><td class="muted">${esc(p.team)}</td>` +
+        `<td>${fmt(p.age)}</td><td>${fmt(p.minutes)}</td><td class="muted">${esc(p.pos)}</td>` +
+        `<td>${reco ? recoBadges(reco) : '<span class="muted">осн. лига</span>'}</td>` +
+        `<td>${best ? `${esc(best.name)}: <b style="color:${percTextColor(best.v)}">${best.v}</b>` : "—"}</td>` +
+        `<td><button class="act danger shdel" data-i="${i}">✕</button></td></tr>`;
+    }).join("") + `</tbody></table></div>`;
+
+  el.querySelectorAll("tr[data-i]").forEach(tr => tr.onclick = () => {
+    const { p } = items[+tr.dataset.i];
+    if (p) openCard(p);
+  });
+  el.querySelectorAll(".shdel").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();
+    shortlist.splice(+btn.dataset.i, 1);
+    saveShortlist(); renderShortlist();
+    if (selectedPlayer) renderCard(selectedPlayer);
+  });
+  makeColumnsResizable(el.querySelector("table"), "short", (th, i) => "c" + i);
+}
+
+/* ================= РЕНДЕР: КАРТОЧКА ================= */
+
+function openCard(p) {
+  selectedPlayer = p;
+  selectedRoleIdx = 0;
+  compareKey = "";
+  renderCard(p);
+  switchTab("card");
+}
+
+function radarSvg(items, label1, label2) {
+  const n = items.length;
+  if (n < 3) return "";
+  const size = 400, cx = size / 2, cy = size / 2, R = 112;
+  const pt = (i, r) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  };
+  // цвета серий валидированы для тёмной темы (полоса светлоты + CVD-разделение)
+  const C1 = "#0e9db8", C2 = "#d97706";
+  let grid = "";
+  for (const frac of [0.25, 0.5, 0.75, 1]) {
+    const pts = items.map((_, i) => pt(i, R * frac).join(",")).join(" ");
+    grid += `<polygon points="${pts}" fill="none" stroke="#272e52" stroke-width="1"/>`;
+  }
+  let axes = "", labels = "";
+  const hasSecond = items.some(it => it.perc2 !== undefined && it.perc2 !== null);
+  items.forEach((it, i) => {
+    const [x, y] = pt(i, R);
+    axes += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#272e52" stroke-width="1"/>`;
+    const [lx, ly] = pt(i, R + 26);
+    const short = it.label.length > 24 ? it.label.slice(0, 23) + "…" : it.label;
+    const anchor = Math.abs(lx - cx) < 12 ? "middle" : (lx > cx ? "start" : "end");
+    labels += `<text x="${lx}" y="${ly}" fill="#8e96bd" font-size="10" text-anchor="${anchor}" dominant-baseline="middle">${esc(short)}</text>`;
+    const valTxt = hasSecond ? `${it.perc ?? "—"} / ${it.perc2 ?? "—"}` : `${it.perc ?? "—"}`;
+    labels += `<text x="${lx}" y="${ly + 12}" fill="${hasSecond ? "#c6cdea" : percTextColor(it.perc)}" font-size="11" font-weight="700" text-anchor="${anchor}" dominant-baseline="middle">${valTxt}</text>`;
+  });
+  const poly1 = items.map((it, i) => pt(i, R * ((it.perc ?? 0) / 100)).join(",")).join(" ");
+  let poly2html = "";
+  if (hasSecond) {
+    const poly2 = items.map((it, i) => pt(i, R * ((it.perc2 ?? 0) / 100)).join(",")).join(" ");
+    poly2html = `<polygon points="${poly2}" fill="rgba(217,119,6,.20)" stroke="${C2}" stroke-width="2" stroke-linejoin="round"/>`;
+  }
+  let legend = "";
+  if (hasSecond) {
+    legend = `<div class="legend">
+      <span><span class="sw" style="background:${C1}"></span>${esc(label1 || "")}</span>
+      <span><span class="sw" style="background:${C2}"></span>${esc(label2 || "")}</span>
+    </div>`;
+  }
+  const gid = "rg" + Math.floor(Math.random() * 1e6);
+  return `<svg viewBox="0 0 ${size} ${size}" style="max-width:420px; width:100%; display:block; margin:0 auto;">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity=".34"/>
+      <stop offset="100%" stop-color="#0e9db8" stop-opacity=".30"/>
+    </linearGradient></defs>
+    ${grid}${axes}
+    <polygon points="${poly1}" fill="url(#${gid})" stroke="${C1}" stroke-width="2" stroke-linejoin="round"/>
+    ${poly2html}${labels}</svg>${legend}`;
+}
+
+function renderCard(p) {
+  const el = document.getElementById("cardContent");
+  const group = p.group;
+  const lg = p.league;
+  const isMain = lg?.isMain;
+  const roles = group ? (cfg.roles[group] || []) : [];
+  const eligible = p.minutes >= cfg.minMinutes;
+  const reco = (!isMain && eligible) ? recoForPlayer(p) : null;
+
+  const roleData = roles.map((r, ri) => ({
+    role: r, ri,
+    idx: roleIndex(p, r),
+    adj: isMain ? null : adjIndex(p, r),
+  })).sort((a, b) => ((isMain ? b.idx : b.adj) ?? -1) - ((isMain ? a.idx : a.adj) ?? -1));
+  if (selectedRoleIdx >= roleData.length) selectedRoleIdx = 0;
+
+  const rolesHtml = roleData.length ? roleData.map((rd, i) => {
+    const shown = isMain ? rd.idx : rd.adj;
+    const rank = (!isMain && rd.adj !== null) ? mainRank(group, rd.ri, rd.adj) : null;
+    const sub = !isMain
+      ? `<span class="rsub">в своей лиге: ${rd.idx ?? "—"}${rank ? ` · в осн.: топ-${rank.topPct}% (№${rank.place} из ${rank.n})` : ""}</span>`
+      : "";
+    return `
+    <div class="role-row ${i === selectedRoleIdx ? "sel" : ""}" data-ri="${i}">
+      <span class="rname">${esc(rd.role.name)}${sub}</span>
+      <div class="role-bar-wrap"><div class="role-bar" style="width:${shown ?? 0}%; background:${percColor(shown)}"></div></div>
+      <span class="role-val" style="color:${percTextColor(shown)}">${shown ?? "—"}</span>
+    </div>`;
+  }).join("") : `<p class="hint">Для этой группы позиций роли не настроены.</p>`;
+
+  // радар выбранной роли (+ игрок сравнения)
+  const selRole = roleData[selectedRoleIdx];
+  let radarHtml = "", compareSelHtml = "";
+  const cmpPlayer = compareKey ? findPlayerByKey(compareKey) : null;
+  if (selRole) {
+    const known = knownMetricNames(true);
+    const items = selRole.role.parts.filter(([name]) => known.has(name)).map(([name]) => ({
+      label: name,
+      perc: anyPerc(p, name, isMain ? undefined : "adj"),
+      perc2: cmpPlayer ? anyPerc(cmpPlayer, name) : undefined,
+    }));
+    radarHtml = radarSvg(items, p.name, cmpPlayer ? cmpPlayer.name : "");
+    const missing = selRole.role.parts.filter(([name]) => !known.has(name)).map(([n]) => n);
+    if (missing.length) {
+      radarHtml += `<p class="hint" style="color:#ffb84d">⚠ В роли есть метрики, которых больше не существует
+        (переименованы или удалены): ${missing.map(esc).join(", ")}. Они не участвуют в расчёте —
+        откройте «Роли и веса» и замените их (помечены ⚠).</p>`;
+    }
+    if (!isMain) {
+      const lset = leagueMetricSet(lg);
+      const absent = roleRawMetrics(selRole.role).filter(m => metricCols.includes(m) && !lset.has(m));
+      if (absent.length) {
+        radarHtml += `<p class="hint" style="color:#ffb84d">⚠ В данных лиги «${esc(lg?.name ?? "")}» нет метрик:
+          ${absent.map(esc).join(", ")} — роль посчитана без них, веса перераспределены.</p>`;
+      }
+    }
+    if (items.length < 3 && selRole.role.parts.length >= 3) {
+      radarHtml = `<p class="hint">Слишком мало действующих метрик для радара.</p>` + radarHtml;
+    }
+  }
+  if (mainLeague && group) {
+    const cands = mainLeague.players
+      .filter(c => c.group === group && c.minutes >= cfg.minMinutes && !(c.name === p.name && c.team === p.team))
+      .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    compareSelHtml = `<div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+      <label class="hint" style="margin:0">Сравнить с (осн. лига):</label>
+      <select id="cmpSel"><option value="">— никто —</option>` +
+      cands.map(c => `<option value="${esc(playerKey(c))}" ${playerKey(c) === compareKey ? "selected" : ""}>${esc(c.name)} (${esc(c.team)})</option>`).join("") +
+      `</select></div>
+      <p class="hint">${isMain ? "На радаре — перцентили в основной лиге." : "Показатели игрока пересчитаны на коэффициент лиги, перцентили — относительно игроков основной лиги, поэтому оба контура радара в одной шкале."}</p>`;
+  }
+
+  // похожие игроки
+  let simHtml = "";
+  if (mainLeague && group && eligible) {
+    const sims = similarMainPlayers(p, 5);
+    if (sims.length) {
+      simHtml = `<div class="panel" style="margin-top:16px">
+        <h3>На кого похож в основной лиге</h3>
+        <p class="hint">Близость профилей перцентилей (с учётом коэффициента лиги).</p>` +
+        sims.map(s => `<div class="sim-row" data-k="${esc(playerKey(s.p))}">
+          <b>${esc(s.p.name)}</b><span class="muted">${esc(s.p.team)} · ${esc(s.p.pos)}</span>
+          <span class="sv">${s.sim}%</span></div>`).join("") + `</div>`;
+    }
+  }
+
+  // раскладка по разделам (с учётом перетаскиваний), среднее перцентилей в заголовке
+  const catData = buildMetricCats().map(([cat, ms]) => {
+    const percs = [];
+    const rowsH = ms.map(m => {
+      const perc = metricPerc(p, m, isMain ? undefined : "adj");
+      if (perc !== null) percs.push(perc);
+      const shownVal = isMain ? p.stats[m] : adjStat(p, m);
+      const tip = isMain ? "" : ` title="в своей лиге: ${fmt(p.stats[m])}"`;
+      return `<div class="m-row" data-m="${esc(m)}">
+        <span class="mn">${esc(m)}${INVERTED.has(m) ? " ⇩" : ""}</span>
+        <span class="mv"${tip}>${fmt(shownVal)}</span>
+        <div class="m-bar-wrap"><div class="m-bar" style="width:${perc ?? 0}%; background:${percColor(perc)}"></div></div>
+        <span class="mp" style="color:${percTextColor(perc)}">${perc ?? "—"}</span>
+      </div>`;
+    }).join("");
+    const avg = percs.length ? Math.round(percs.reduce((a, b) => a + b, 0) / percs.length) : null;
+    return { cat, rowsH, avg };
+  });
+  const catsHtml = catData.map(({ cat, rowsH, avg }) => `<div class="metric-cat" data-cat="${esc(cat)}">
+      <h4>${cat}${avg === null ? "" : `<span class="cat-avg" style="color:${percTextColor(avg)}" title="Средний перцентиль раздела">ср. ${avg}</span>`}</h4>
+      ${rowsH || `<div class="hint" style="padding:2px 0 6px">перетащите сюда показатели</div>`}
+    </div>`).join("");
+  const headCatsHtml = catData.filter(c => c.avg !== null).map(c =>
+    `<div class="hc" title="Средний перцентиль раздела «${esc(c.cat)}»">
+      <div class="v" style="color:${percTextColor(c.avg)}">${c.avg}</div>
+      <div class="l">${esc(c.cat)}</div>
+    </div>`).join("");
+
+  const inShort = inShortlist(p);
+  const leagueLine = isMain
+    ? `${esc(lg.name)}`
+    : `${esc(lg?.name ?? "?")} · коэф. ${lg?.coef ?? "?"}`;
+
+  el.innerHTML = `
+    <div class="card-head">
+      <div>
+        <h2>${esc(p.name)}${flagsHtml(p.nat, 24)}
+          <button class="star-btn ${inShort ? "on" : ""}" id="starBtn" title="${inShort ? "Убрать из шорт-листа" : "В шорт-лист"}">${inShort ? "★" : "☆"}</button>
+          ${reco ? recoBadges(reco) : ""}
+        </h2>
+        <div class="sub">${esc(p.team)} · ${esc(p.pos)} · ${group ? GROUP_NAME[group] : "?"} · ${leagueLine}</div>
+        ${eligible ? "" : `<div class="sub" style="color:#ffb84d">⚠ Меньше ${cfg.minMinutes} минут — не входит в перцентильный рейтинг</div>`}
+      </div>
+      <div class="head-cats">${headCatsHtml}</div>
+      <div class="bio">
+        <div><div class="v">${fmt(p.age)}</div><div class="l">Возраст</div></div>
+        <div><div class="v">${fmt(p.height)}</div><div class="l">Рост</div></div>
+        <div><div class="v">${fmt(p.minutes)}</div><div class="l">Минут</div></div>
+      </div>
+    </div>
+    <div class="card-grid">
+      <div>
+        <div class="panel" style="margin-bottom:16px">
+          <h3>Индексы ролей <span class="badge">${isMain ? `перцентили среди: ${group ? GROUP_NAME[group] : "?"}` : `показатели ×${lg?.coef}${cfg.styleNorm ? " + стиль" : ""}, шкала основной лиги`}</span></h3>
+          ${rolesHtml}
+          ${(() => {
+            if (isMain) return "";
+            const cov = leagueCoverage(lg);
+            return cov.have < cov.total
+              ? `<p class="hint" style="color:#ffb84d">⚠ В этой лиге доступно ${cov.have} из ${cov.total} метрик словаря — индексы посчитаны по доступным.</p>`
+              : "";
+          })()}
+        </div>
+        <div class="panel">
+          <h3>Профиль роли: ${selRole ? esc(selRole.role.name) : "—"}</h3>
+          ${radarHtml}
+          ${compareSelHtml}
+        </div>
+        ${simHtml}
+      </div>
+      <div class="panel">
+        <h3>${isMain ? "Все показатели (за 90 минут)" : `Все показатели (за 90 минут, пересчитаны ×${lg?.coef}; перцентили — среди игроков основной лиги)`}</h3>
+        <p class="hint" style="margin-top:-6px">Показатели можно перетаскивать между разделами — среднее раздела пересчитается. Раскладка запоминается для всех игроков.</p>
+        ${catsHtml}
+      </div>
+    </div>`;
+
+  el.querySelectorAll(".role-row").forEach(row => row.onclick = () => {
+    selectedRoleIdx = +row.dataset.ri;
+    renderCard(p);
+  });
+  // перетаскивание показателей между разделами — свой механизм на pointer-событиях:
+  // в отличие от нативного drag-and-drop, работают и колесо мыши, и автоскролл у краёв
+  el.querySelectorAll(".m-row[data-m]").forEach(row => {
+    row.onpointerdown = e => {
+      if (e.button !== 0) return;
+      const m = row.dataset.m;
+      const startX = e.clientX, startY = e.clientY;
+      let started = false, ghost = null, curZone = null;
+      let lastX = e.clientX, lastY = e.clientY;
+      let scrollTimer = null;
+
+      const zoneAt = (x, y) => {
+        const t = document.elementFromPoint(x, y);
+        return t ? t.closest(".metric-cat") : null;
+      };
+      const highlight = () => {
+        const z = zoneAt(lastX, lastY);
+        if (z !== curZone) {
+          curZone?.classList.remove("dragover");
+          curZone = z;
+          curZone?.classList.add("dragover");
+        }
+      };
+      const move = ev => {
+        lastX = ev.clientX; lastY = ev.clientY;
+        if (!started) {
+          if (Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) < 6) return;
+          started = true;
+          row.classList.add("dragging");
+          document.body.style.userSelect = "none";
+          ghost = row.cloneNode(true);
+          ghost.classList.add("drag-ghost");
+          ghost.style.width = Math.min(420, row.getBoundingClientRect().width) + "px";
+          document.body.appendChild(ghost);
+          // автоскролл у краёв экрана; подсветку зоны обновляем и при прокрутке колесом
+          scrollTimer = setInterval(() => {
+            const zone = 100, h = window.innerHeight;
+            let dir = 0;
+            if (lastY < zone) dir = -Math.ceil((zone - lastY) / 4);
+            else if (lastY > h - zone) dir = Math.ceil((lastY - (h - zone)) / 4);
+            if (dir) window.scrollBy(0, dir);
+            highlight();
+          }, 16);
+        }
+        ghost.style.left = (ev.clientX + 12) + "px";
+        ghost.style.top = (ev.clientY + 10) + "px";
+        highlight();
+        ev.preventDefault();
+      };
+      const up = () => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        document.removeEventListener("pointercancel", up);
+        if (scrollTimer) clearInterval(scrollTimer);
+        if (ghost) ghost.remove();
+        row.classList.remove("dragging");
+        document.body.style.userSelect = "";
+        const z = curZone;
+        curZone?.classList.remove("dragover");
+        if (started && z && z.dataset.cat) {
+          cfg.catAssign = cfg.catAssign || {};
+          if ((DEFAULT_CAT[m] || "Прочее") === z.dataset.cat) delete cfg.catAssign[m];
+          else cfg.catAssign[m] = z.dataset.cat;
+          saveCfg();
+          renderCard(p);
+        }
+      };
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+      document.addEventListener("pointercancel", up);
+    };
+  });
+  const cmpSel = document.getElementById("cmpSel");
+  if (cmpSel) cmpSel.onchange = () => { compareKey = cmpSel.value; renderCard(p); };
+  el.querySelectorAll(".sim-row").forEach(row => row.onclick = () => {
+    const sp = findPlayerByKey(row.dataset.k);
+    if (sp) openCard(sp);
+  });
+  document.getElementById("starBtn").onclick = () => {
+    if (inShortlist(p)) shortlist = shortlist.filter(s => !(s.name === p.name && s.team === p.team));
+    else shortlist.push({ name: p.name, team: p.team, lg: p.league?.id });
+    saveShortlist(); renderShortlist(); renderCard(p);
+  };
+}
+
+/* ================= РЕНДЕР: КОНФИГ РОЛЕЙ ================= */
+
+function knownMetricNames(includeComposites) {
+  return new Set([...(includeComposites ? cfg.composites.map(c => c.name) : []), ...metricCols]);
+}
+
+function metricOptions(selected, includeComposites) {
+  let opts = "";
+  if (selected && !knownMetricNames(includeComposites).has(selected)) {
+    opts += `<option selected>⚠ ${esc(selected)} (не существует)</option>`;
+  }
+  if (includeComposites && cfg.composites.length) {
+    opts += `<optgroup label="— Составные метрики —">` +
+      cfg.composites.map(c => `<option ${c.name === selected ? "selected" : ""}>${esc(c.name)}</option>`).join("") +
+      `</optgroup>`;
+  }
+  opts += `<optgroup label="— Метрики РуСтат —">` +
+    metricCols.map(m => `<option ${m === selected ? "selected" : ""}>${esc(m)}${INVERTED.has(m) ? " ⇩" : ""}</option>`).join("") +
+    `</optgroup>`;
+  return opts;
+}
+
+function cleanMetricName(s) {
+  s = s.replace(" ⇩", "");
+  const m = s.match(/^⚠ (.*) \(не существует\)$/);
+  return m ? m[1] : s;
+}
+
+function wsum(parts) { return parts.reduce((s, pr) => s + (+pr[1] || 0), 0); }
+
+function wsumBadge(parts) {
+  const s = wsum(parts);
+  const r = Math.round(s * 100) / 100;
+  const ok = Math.abs(s - 1) < 0.005;
+  const color = ok ? "#6ee7a0" : (s > 1 ? "#ffb84d" : "#6ec3ff");
+  const label = ok ? "" : (s > 1 ? " · перебор" : " · недобор");
+  return `<span class="badge wsum" style="color:${color}; white-space:nowrap" title="Сумма весов. На расчёт не влияет (веса нормализуются автоматически), но помогает контролировать баланс: 1 — ровно">Σ ${r.toLocaleString("ru")}${label}</span>`;
+}
+
+function updateWsum(card, parts) {
+  const el = card.querySelector(".wsum");
+  if (el) el.outerHTML = wsumBadge(parts);
+}
+
+function partsEditor(parts, includeComposites) {
+  return parts.map(([name, w], i) => `
+    <div class="w-row" data-pi="${i}">
+      <select class="pm">${metricOptions(name, includeComposites)}</select>
+      <input type="number" class="pw" value="${w}" step="0.05" min="0">
+      <button class="del" title="Удалить">✕</button>
+    </div>`).join("");
+}
+
+function renderRolesConfig() {
+  // запоминаем, какие карточки раскрыты, чтобы восстановить после перерисовки
+  const openKeys = new Set();
+  document.querySelectorAll("#compList details[open]").forEach(d => openKeys.add("c:" + d.dataset.ci));
+  document.querySelectorAll("#rolesList .cfg-section").forEach(sec =>
+    sec.querySelectorAll("details[open]").forEach(d => openKeys.add("r:" + sec.dataset.g + ":" + d.dataset.ri)));
+
+  const compList = document.getElementById("compList");
+  compList.innerHTML = cfg.composites.map((c, ci) => `
+    <details class="role-card" data-ci="${ci}">
+      <summary><input type="text" class="cname" value="${esc(c.name)}" style="flex:1; max-width:420px" onclick="event.stopPropagation()">
+        ${wsumBadge(c.parts)}
+        <button class="act danger delcomp" onclick="event.stopPropagation()">удалить</button></summary>
+      <div class="body">
+        <div class="parts">${partsEditor(c.parts, false)}</div>
+        <button class="act sec addpart">+ метрика</button>
+      </div>
+    </details>`).join("");
+
+  const rolesList = document.getElementById("rolesList");
+  rolesList.innerHTML = GROUPS.map(g => {
+    const roles = cfg.roles[g.key] || [];
+    return `<div class="cfg-section" data-g="${g.key}">
+      <h3 style="color:var(--text); font-size:15px">${g.name} <span class="badge">${roles.length} рол.</span></h3>
+      ${roles.map((r, ri) => `
+        <details class="role-card" data-ri="${ri}">
+          <summary><input type="text" class="rname-in" value="${esc(r.name)}" style="flex:1; max-width:420px" onclick="event.stopPropagation()">
+            ${wsumBadge(r.parts)}
+            <button class="act danger delrole" onclick="event.stopPropagation()">удалить</button></summary>
+          <div class="body">
+            <div class="parts">${partsEditor(r.parts, true)}</div>
+            <button class="act sec addpart">+ метрика</button>
+          </div>
+        </details>`).join("")}
+      <button class="act sec addrole">+ Добавить роль</button>
+    </div>`;
+  }).join("");
+
+  // восстанавливаем раскрытые карточки
+  document.querySelectorAll("#compList details").forEach(d => { if (openKeys.has("c:" + d.dataset.ci)) d.open = true; });
+  document.querySelectorAll("#rolesList .cfg-section").forEach(sec =>
+    sec.querySelectorAll("details").forEach(d => { if (openKeys.has("r:" + sec.dataset.g + ":" + d.dataset.ri)) d.open = true; }));
+
+  bindConfigEvents();
+}
+
+function bindConfigEvents() {
+  document.querySelectorAll("#compList .role-card").forEach(card => {
+    const ci = +card.dataset.ci;
+    const comp = cfg.composites[ci];
+    card.querySelector(".cname").onchange = e => {
+      const oldName = comp.name, newName = e.target.value.trim() || comp.name;
+      comp.name = newName;
+      // роли ссылаются на составные метрики по имени — переносим переименование во все роли
+      for (const g of Object.keys(cfg.roles))
+        for (const r of cfg.roles[g])
+          for (const pr of r.parts) if (pr[0] === oldName) pr[0] = newName;
+      cfgChanged(true);
+    };
+    card.querySelector(".delcomp").onclick = () => {
+      if (confirm(`Удалить метрику «${comp.name}»? Она будет убрана и из всех ролей, где используется.`)) {
+        cfg.composites.splice(ci, 1);
+        for (const g of Object.keys(cfg.roles))
+          for (const r of cfg.roles[g]) r.parts = r.parts.filter(pr => pr[0] !== comp.name);
+        cfgChanged(true);
+      }
+    };
+    bindParts(card, comp.parts, false);
+  });
+  document.getElementById("btnAddComp").onclick = () => {
+    cfg.composites.push({ name: "Новая метрика", parts: [[metricCols[0] || "Голы", 1]] });
+    cfgChanged(true);
+    const cards = document.querySelectorAll("#compList details");
+    if (cards.length) cards[cards.length - 1].open = true;
+  };
+  document.querySelectorAll("#rolesList .cfg-section").forEach(sec => {
+    const g = sec.dataset.g;
+    sec.querySelectorAll(".role-card").forEach(card => {
+      const ri = +card.dataset.ri;
+      const role = cfg.roles[g][ri];
+      card.querySelector(".rname-in").onchange = e => { role.name = e.target.value; cfgChanged(false); };
+      card.querySelector(".delrole").onclick = () => {
+        if (confirm(`Удалить роль «${role.name}»?`)) { cfg.roles[g].splice(ri, 1); cfgChanged(true); }
+      };
+      bindParts(card, role.parts, true);
+    });
+    sec.querySelector(".addrole").onclick = () => {
+      cfg.roles[g] = cfg.roles[g] || [];
+      cfg.roles[g].push({ name: "Новая роль", parts: [[metricCols[0] || "Голы", 1]] });
+      cfgChanged(true);
+      const sec2 = document.querySelector(`#rolesList .cfg-section[data-g="${g}"]`);
+      const cards = sec2 ? sec2.querySelectorAll("details") : [];
+      if (cards.length) cards[cards.length - 1].open = true;
+    };
+  });
+}
+
+function bindParts(card, parts, includeComposites) {
+  // перерисовываем только строки этой карточки — раскрытые окошки не схлопываются
+  const rebuild = () => {
+    card.querySelector(".parts").innerHTML = partsEditor(parts, includeComposites);
+    updateWsum(card, parts);
+    bindRows();
+  };
+  const bindRows = () => {
+    card.querySelectorAll(".w-row").forEach(row => {
+      const pi = +row.dataset.pi;
+      row.querySelector(".pm").onchange = e => { parts[pi][0] = cleanMetricName(e.target.value); cfgChanged(false); };
+      row.querySelector(".pw").onchange = e => { parts[pi][1] = parseFloat(e.target.value) || 0; cfgChanged(false); updateWsum(card, parts); };
+      row.querySelector(".del").onclick = () => { parts.splice(pi, 1); cfgChanged(false); rebuild(); };
+    });
+  };
+  bindRows();
+  card.querySelector(".addpart").onclick = () => { parts.push([metricCols[0] || "Голы", 0.1]); cfgChanged(false); rebuild(); };
+}
+
+function cfgChanged(rerenderCfg) {
+  saveCfg();
+  recomputeAll();
+  renderHeaderInfo();
+  renderPlayersTable();
+  renderScoutTable();
+  renderShortlist();
+  if (selectedPlayer) renderCard(selectedPlayer);
+  if (rerenderCfg) renderRolesConfig();
+}
+
+/* ================= РЕНДЕР: ДАННЫЕ ================= */
+
+function renderDataInfo() {
+  const box = document.getElementById("dataInfo");
+  if (!mainLeague) { box.style.display = "none"; return; }
+  box.style.display = "flex";
+  const meta = JSON.parse(localStorage.getItem(LS_META) || "{}");
+  const byGroup = GROUPS.map(g => {
+    const n = mainLeague.players.filter(p => p.group === g.key).length;
+    const e = mainLeague.players.filter(p => p.group === g.key && p.minutes >= cfg.minMinutes).length;
+    return `${g.name}: <b>${e}</b>/${n}`;
+  }).join(" · ");
+  box.innerHTML = `<div>
+    <div><b>${esc(mainLeague.fileName)}</b> — загружено ${meta.loaded || ""}, игроков: ${mainLeague.players.length}, метрик: ${metricCols.length}.</div>
+    <div class="hint">В рейтинге (≥ ${cfg.minMinutes} мин): ${byGroup}</div>
+  </div>`;
+}
+
+/* ================= НАВИГАЦИЯ И СОБЫТИЯ ================= */
+
+function switchTab(name) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab-page").forEach(pg => pg.classList.toggle("active", pg.id === "page-" + name));
+}
+document.querySelectorAll(".tab-btn").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+
+/* автоскролл страницы при перетаскивании показателя к краю экрана:
+   чем ближе курсор к краю, тем быстрее едет страница */
+let dragScrollDir = 0, dragScrollTimer = null;
+document.addEventListener("dragover", e => {
+  const zone = 100, h = window.innerHeight, y = e.clientY;
+  let dir = 0;
+  if (y < zone) dir = -Math.ceil((zone - y) / 4);
+  else if (y > h - zone) dir = Math.ceil((y - (h - zone)) / 4);
+  dragScrollDir = dir;
+  if (dir && !dragScrollTimer) {
+    dragScrollTimer = setInterval(() => {
+      if (dragScrollDir) window.scrollBy(0, dragScrollDir);
+      else { clearInterval(dragScrollTimer); dragScrollTimer = null; }
+    }, 16);
+  }
+});
+function stopDragScroll() {
+  dragScrollDir = 0;
+  if (dragScrollTimer) { clearInterval(dragScrollTimer); dragScrollTimer = null; }
+}
+document.addEventListener("dragend", stopDragScroll);
+document.addEventListener("drop", stopDragScroll);
+
+function bindDropzone(zoneId, inputId, handler) {
+  const dz = document.getElementById(zoneId);
+  const fi = document.getElementById(inputId);
+  dz.onclick = () => fi.click();
+  dz.ondragover = e => { e.preventDefault(); dz.classList.add("drag"); };
+  dz.ondragleave = () => dz.classList.remove("drag");
+  dz.ondrop = e => {
+    e.preventDefault(); dz.classList.remove("drag");
+    const f = e.dataTransfer.files[0];
+    if (f) f.arrayBuffer().then(buf => handler(bufferToText(buf), f.name));
+  };
+  fi.onchange = () => {
+    const f = fi.files[0];
+    if (f) f.arrayBuffer().then(buf => handler(bufferToText(buf), f.name));
+    fi.value = "";
+  };
+}
+bindDropzone("dropzone", "fileInput", loadMainText);
+bindDropzone("scoutDrop", "scoutFile", addScoutText);
+
+const mm = document.getElementById("minMinutes");
+mm.value = cfg.minMinutes;
+mm.onchange = () => { cfg.minMinutes = Math.max(0, parseInt(mm.value) || 0); cfgChanged(false); renderDataInfo(); renderScout(); };
+
+document.getElementById("fSearch").oninput = () => renderPlayersTable();
+document.getElementById("fGroup").onchange = () => { sortState = { col: "__role0", dir: -1 }; renderPlayersTable(); };
+document.getElementById("fTeam").onchange = () => renderPlayersTable();
+
+document.getElementById("sSearch").oninput = () => renderScoutTable();
+document.getElementById("sGroup").onchange = () => { scSortState = { col: "__best", dir: -1 }; renderScoutTable(); };
+document.getElementById("sLeague").onchange = () => renderScoutTable();
+document.getElementById("sReco").onchange = () => renderScoutTable();
+
+/* перенос настроек и данных из первой версии (её ключи в этом же браузере) */
+document.getElementById("btnFromV1").onclick = () => {
+  const v1cfg = localStorage.getItem("rustat_cfg_v1");
+  const v1csv = localStorage.getItem("rustat_csv_v1");
+  if (!v1cfg && !v1csv) { alert("Данные первой версии в этом браузере не найдены. Откройте сначала первую версию по этому же адресу (без /v2) и убедитесь, что там всё на месте."); return; }
+  if (!confirm("Перенести из версии 1: настройки (роли, веса, метрики, столбцы), основную лигу, скаут-лиги и шорт-лист?\n\nТекущие настройки и данные v2 будут ЗАМЕНЕНЫ (профили источников v2 сохранятся).")) return;
+  try {
+    if (v1cfg) {
+      const c = JSON.parse(v1cfg);
+      c.profiles = cfg.profiles || {};
+      localStorage.setItem(LS_CFG, JSON.stringify(c));
+    }
+    if (v1csv) {
+      localStorage.setItem(LS_CSV, v1csv);
+      const m = JSON.parse(localStorage.getItem("rustat_meta_v1") || "{}");
+      m.profileName = "__rustat";
+      localStorage.setItem(LS_META, JSON.stringify(m));
+    }
+    const v1scout = localStorage.getItem("rustat_scout_v1");
+    if (v1scout) {
+      const arr = JSON.parse(v1scout).map(l => ({ ...l, profileName: "__rustat" }));
+      localStorage.setItem(LS_SCOUT, JSON.stringify(arr));
+    }
+    const v1short = localStorage.getItem("rustat_shortlist_v1");
+    if (v1short) localStorage.setItem(LS_SHORT, v1short);
+  } catch (e) { alert("Не удалось перенести: " + e.message); return; }
+  location.reload();
+};
+
+document.getElementById("presetSave").onclick = () => {
+  const name = document.getElementById("presetName").value.trim();
+  if (!name) { alert("Введите название набора столбцов"); return; }
+  cfg.scoutColPresets[name] = { order: scoutColOrder(), hidden: [...cfg.scoutCols.hidden] };
+  saveCfg(); renderColCfg();
+  document.getElementById("presetSel").value = name;
+  document.getElementById("presetName").value = "";
+};
+document.getElementById("presetLoad").onclick = () => {
+  const name = document.getElementById("presetSel").value;
+  const pr = cfg.scoutColPresets[name];
+  if (!pr) return;
+  cfg.scoutCols = { order: [...pr.order], hidden: [...pr.hidden] };
+  saveCfg(); renderColCfg(); renderScoutTable();
+};
+document.getElementById("presetDel").onclick = () => {
+  const name = document.getElementById("presetSel").value;
+  if (!name || !cfg.scoutColPresets[name]) return;
+  if (confirm(`Удалить набор «${name}»?`)) { delete cfg.scoutColPresets[name]; saveCfg(); renderColCfg(); }
+};
+
+document.getElementById("styleNormChk").onchange = e => {
+  cfg.styleNorm = e.target.checked;
+  saveCfg();
+  renderScoutTable(); renderShortlist();
+  if (selectedPlayer) renderCard(selectedPlayer);
+};
+
+for (const [id, key] of [["recoStar","star"],["recoReady","ready"],["recoAge","age"]]) {
+  document.getElementById(id).onchange = e => {
+    const v = parseInt(e.target.value);
+    if (!isNaN(v) && v > 0) { cfg.reco[key] = v; saveCfg(); renderScoutTable(); renderShortlist(); if (selectedPlayer) renderCard(selectedPlayer); }
+  };
+}
+
+document.getElementById("btnResetCfg").onclick = () => {
+  if (confirm("Сбросить все роли, метрики и веса к настройкам по умолчанию?")) {
+    const mins = cfg.minMinutes, reco = cfg.reco;
+    cfg = defaultConfig();
+    cfg.minMinutes = mins; cfg.reco = reco;
+    cfgChanged(true);
+  }
+};
+document.getElementById("btnExportCfg").onclick = () => {
+  const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "скаут-настройки.json";
+  a.click();
+};
+document.getElementById("btnImportCfg").onclick = () => {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = ".json";
+  inp.onchange = () => {
+    const f = inp.files[0];
+    if (!f) return;
+    f.text().then(t => {
+      try {
+        const c = JSON.parse(t);
+        if (!c.roles) throw new Error("bad");
+        if (!c.reco) c.reco = defaultReco();
+        cfg = c; cfgChanged(true);
+        mm.value = cfg.minMinutes;
+        renderScout();
+      } catch (e) { alert("Не удалось прочитать файл настроек"); }
+    });
+  };
+  inp.click();
+};
+
+/* ================= СТАРТ ================= */
+
+window.app = {
+  loadMainText, addScoutText,
+  loadMainBuffer: (buf, fn) => loadMainText(bufferToText(buf), fn),
+  addScoutBuffer: (buf, fn) => addScoutText(bufferToText(buf), fn),
+};
+
+(function init() {
+  const saved = localStorage.getItem(LS_CSV);
+  if (saved) {
+    const meta = JSON.parse(localStorage.getItem(LS_META) || "{}");
+    const table = parseTable(saved);
+    const profile = profileByName(meta.profileName);
+    const data = (table && profile) ? buildLeagueData(table, profile) : null;
+    if (data) {
+      metricCols = data.metrics;
+      mainLeague = { id: "main", name: "Основная лига", coef: 1, isMain: true, fileName: meta.fileName || "данные", players: data.players, percCache: {} };
+      mainLeague.players.forEach(p => p.league = mainLeague);
+    }
+  }
+  restoreScoutLeagues();
+  recomputeAll();
+  renderAll();
+  // постоянный кэш флагов — не перекачиваются при каждом открытии
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
